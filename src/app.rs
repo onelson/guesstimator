@@ -15,8 +15,11 @@ pub struct App {
     state: State,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct State;
+#[derive(Serialize, Deserialize, Default)]
+pub struct State {
+    selected_card: Option<usize>,
+    player_name: Option<String>,
+}
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Msg {
@@ -30,7 +33,7 @@ impl Component for App {
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
         let storage = StorageService::new(Area::Local).unwrap();
-        let state = State;
+        let state = State::default();
         App {
             link,
             storage,
@@ -38,8 +41,19 @@ impl Component for App {
         }
     }
 
-    fn update(&mut self, _msg: Self::Message) -> bool {
-        debug!("{:?}", &_msg);
+    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+        debug!("{:?}", &msg);
+        match msg {
+            Msg::SelectCard(idx) => {
+                match self.state.selected_card.take() {
+                    Some(prev) if prev == idx => (),
+                    _ => self.state.selected_card = Some(idx),
+                }
+
+                return true;
+            }
+            Msg::Noop => (),
+        }
         false
     }
 
@@ -48,14 +62,22 @@ impl Component for App {
     }
 
     fn view(&self) -> Html {
-        info!("rendered!");
+        let player_name = self
+            .state
+            .player_name
+            .as_ref()
+            .map(|x| x.as_str())
+            .unwrap_or_else(|| "guest");
+
         html! {
         <>
+            <p>{format!("{}, please select a card:", &player_name)}</p>
             <ul>
             {for CARDS.iter().enumerate()
                 .map(|(idx, name)| {
                     let on_click = self.link.callback(move |_| Msg::SelectCard(idx));
-                    html!{<li onclick=on_click>{name}</li>}
+                    let classes = if self.state.selected_card == Some(idx) { "active" } else { "" };
+                    html!{ <li class={classes} onclick=on_click>{name}</li> }
                 })}
             </ul>
         </>
