@@ -24,9 +24,9 @@ wasm-bindgen-test = "0.3"
 [dependencies.web-sys]
 version = "0.3.4"
 features = [
-  'KeyboardEvent',
-  'EventTarget',
-  'MouseEvent',
-  'HtmlElement',
-  'DomStringMap'
+#  'KeyboardEvent',
+#  'EventTarget',
+#  'MouseEvent',
+#  'HtmlElement',
+#  'DomStringMap'
 ]
