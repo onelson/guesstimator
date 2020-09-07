@@ -1,12 +1,13 @@
 use log::*;
 use serde_derive::{Deserialize, Serialize};
-use strum::IntoEnumIterator;
-use strum_macros::{EnumIter, ToString};
-use yew::format::Json;
+// use yew::format::Json;
 use yew::prelude::*;
 use yew::services::storage::{Area, StorageService};
 
-const KEY: &str = "yew.todomvc.self";
+const KEY: &str = "guesstimation";
+const CARDS: [&str; 12] = [
+    "0", "1", "2", "3", "5", "8", "13", "21", "100", "∞", "?", "☕",
+];
 
 pub struct App {
     link: ComponentLink<Self>,
@@ -17,7 +18,11 @@ pub struct App {
 #[derive(Serialize, Deserialize)]
 pub struct State;
 
-pub enum Msg {}
+#[derive(Debug, Eq, PartialEq)]
+pub enum Msg {
+    SelectCard(usize),
+    Noop,
+}
 
 impl Component for App {
     type Message = Msg;
@@ -34,6 +39,7 @@ impl Component for App {
     }
 
     fn update(&mut self, _msg: Self::Message) -> bool {
+        debug!("{:?}", &_msg);
         false
     }
 
@@ -43,6 +49,16 @@ impl Component for App {
 
     fn view(&self) -> Html {
         info!("rendered!");
-        html! {<h1>{"TODO"}</h1>}
+        html! {
+        <>
+            <ul>
+            {for CARDS.iter().enumerate()
+                .map(|(idx, name)| {
+                    let on_click = self.link.callback(move |_| Msg::SelectCard(idx));
+                    html!{<li onclick=on_click>{name}</li>}
+                })}
+            </ul>
+        </>
+        }
     }
 }
