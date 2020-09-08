@@ -1,6 +1,7 @@
 use log::*;
 use serde_derive::{Deserialize, Serialize};
 // use yew::format::Json;
+use crate::text_edit::TextEdit;
 use yew::prelude::*;
 use yew::services::storage::{Area, StorageService};
 
@@ -24,6 +25,7 @@ pub struct State {
 #[derive(Debug, Eq, PartialEq)]
 pub enum Msg {
     SelectCard(usize),
+    SetPlayerName(String),
     Noop,
 }
 
@@ -52,6 +54,10 @@ impl Component for App {
 
                 return true;
             }
+            Msg::SetPlayerName(name) => {
+                self.state.player_name = Some(name);
+                return true;
+            }
             Msg::Noop => (),
         }
         false
@@ -71,6 +77,13 @@ impl Component for App {
 
         html! {
         <>
+            <div>
+            <label for="player-name">{"Name:"}</label>
+            <TextEdit
+                id="player-name"
+                value=player_name
+                onsubmit=self.link.callback(Msg::SetPlayerName)/>
+            </div>
             <p>{format!("{}, please select a card:", &player_name)}</p>
             <ul>
             {for CARDS.iter().enumerate()
