@@ -19,11 +19,11 @@ module.exports = (env, argv) => {
     module: {
       rules: [
         {
-          test: /\.s[ac]ss$/i,
+          test: /\.css$/i,
           use: [
             'style-loader',
             'css-loader',
-            'sass-loader',
+            'postcss-loader'
           ],
         },
       ],
