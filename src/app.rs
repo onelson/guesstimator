@@ -76,7 +76,7 @@ impl Component for App {
             .unwrap_or_else(|| "guest");
 
         html! {
-        <>
+        <div class="container mx-auto">
             <div>
             <label for="player-name">{"Name:"}</label>
             <TextEdit
@@ -85,15 +85,15 @@ impl Component for App {
                 onsubmit=self.link.callback(Msg::SetPlayerName)/>
             </div>
             <p>{format!("{}, please select a card:", &player_name)}</p>
-            <ul>
+            <ul class="flex flex-row space-x-4 pt-8">
             {for CARDS.iter().enumerate()
                 .map(|(idx, name)| {
                     let on_click = self.link.callback(move |_| Msg::SelectCard(idx));
-                    let classes = if self.state.selected_card == Some(idx) { "active" } else { "" };
-                    html!{ <li class={classes} onclick=on_click>{name}</li> }
+                    let is_active = if self.state.selected_card == Some(idx) { "active" } else { "" };
+                    html!{ <li class=("card", is_active) onclick=on_click>{name}</li> }
                 })}
             </ul>
-        </>
+        </div>
         }
     }
 }

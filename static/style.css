@@ -7,7 +7,27 @@ body {
 }
 
 @layer components {
-  .active {
-    @apply bg-blue-500 text-white font-bold py-2 px-4 rounded;
+  .card {
+    @apply
+      border-2
+      border-gray-600
+      cursor-pointer
+      rounded
+      h-20
+      w-16
+      pt-6
+      text-center
+      align-middle
+      text-lg
+      shadow-md
+      transition duration-75;
+  }
+
+  .card:hover {
+      @apply transition duration-200 shadow-lg transform scale-125 bg-blue-100 border-gray-700;
+  }
+
+  .card.active {
+    @apply bg-blue-200 border-gray-800;
   }
 }
