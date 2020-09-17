@@ -24,7 +24,7 @@ body {
   }
 
   .card:hover {
-      @apply transition duration-200 shadow-lg transform scale-125 bg-blue-100 border-gray-700;
+      @apply duration-200 shadow-lg transform scale-110 bg-blue-100 border-gray-700;
   }
 
   .card.active {
