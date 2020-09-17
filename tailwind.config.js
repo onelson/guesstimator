@@ -1,5 +1,9 @@
 module.exports = (env, argv) => {
   return {
+    future: {
+        removeDeprecatedGapUtilities: true,
+        purgeLayersByDefault: true,
+    },
     purge: {
       enabled: argv.mode === 'production',
       content: [
