@@ -90,7 +90,7 @@ impl Component for App {
                 .map(|(idx, name)| {
                     let on_click = self.link.callback(move |_| Msg::SelectCard(idx));
                     let is_active = if self.state.selected_card == Some(idx) { "active" } else { "" };
-                    html!{ <li class=("card", is_active) onclick=on_click>{name}</li> }
+                    html!{ <li key=*name class=("card", is_active) onclick=on_click>{name}</li> }
                 })}
             </ul>
         </div>
