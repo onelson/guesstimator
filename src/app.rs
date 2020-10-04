@@ -1,20 +1,16 @@
-use log::*;
-use serde_derive::{Deserialize, Serialize};
-// use yew::format::Json;
 use crate::agents::store::{PlanningPokerStore, Player, PlayerId, Request};
+use crate::player_cards::PlayerCards;
 use crate::text_edit::TextEdit;
 use std::collections::HashMap;
 use yew::prelude::*;
-use yew::services::storage::{Area, StorageService};
 use yewtil::store::{Bridgeable, ReadOnly, StoreWrapper};
-
-const KEY: &str = "guesstimation";
+use yewtil::NeqAssign;
 
 pub struct App {
     link: ComponentLink<Self>,
-    storage: StorageService,
     client_id: PlayerId,
     players: HashMap<PlayerId, Player>,
+    is_calling: bool,
     store: Box<dyn Bridge<StoreWrapper<PlanningPokerStore>>>,
 }
 
@@ -30,12 +26,10 @@ impl Component for App {
     type Properties = ();
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let storage = StorageService::new(Area::Local).unwrap();
-
         let mut store = PlanningPokerStore::bridge(link.callback(Msg::StoreChange));
         let client_id = Player::next_id();
         store.send(Request::InitAdminClient(client_id));
-        store.send(Request::AddPlayer(client_id, String::from("guest")));
+        store.send(Request::AddPlayer(client_id, String::from("Guest")));
 
         // FIXME: these players are stand-ins. Remove once we have a server.
         store.send(Request::AddPlayer(Player::next_id(), String::from("Alice")));
@@ -43,15 +37,14 @@ impl Component for App {
 
         App {
             link,
-            storage,
             client_id,
             store,
             players: Default::default(),
+            is_calling: false,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
-        debug!("{:?}", &msg);
         match msg {
             Msg::SelectCard(idx) => {
                 self.store
@@ -61,10 +54,10 @@ impl Component for App {
                 self.store.send(Request::RenamePlayer(self.client_id, name));
             }
             Msg::StoreChange(store) => {
-                debug!("{:?}", store);
                 let store = store.borrow();
-                self.players = store.players.clone();
-                return true;
+                let players_diff = self.players.neq_assign(store.players.clone());
+                let calling_diff = self.is_calling.neq_assign(store.is_calling);
+                return players_diff || calling_diff;
             }
         }
         false
@@ -82,6 +75,7 @@ impl Component for App {
         let player_name = &player.as_ref().unwrap().name;
         html! {
         <div class="container mx-auto">
+            <PlayerCards players=self.players.clone() is_calling=self.is_calling />
             <div>
             <label for="player-name">{"Name:"}</label>
             <TextEdit

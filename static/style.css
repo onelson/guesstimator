@@ -30,4 +30,7 @@ body {
   .card.active {
     @apply bg-blue-200 border-gray-800;
   }
+  .card.undecided {
+    @apply bg-gray-500 text-gray-600;
+  }
 }
