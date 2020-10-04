@@ -2,6 +2,7 @@
 
 mod agents;
 mod app;
+mod player_cards;
 pub(crate) mod text_edit;
 
 use wasm_bindgen::prelude::*;
