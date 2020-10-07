@@ -30,6 +30,10 @@ impl Player {
         }
     }
 
+    pub fn selected_card_name(&self) -> Option<&'static str> {
+        self.selected_card.map(|idx| self::CARDS[idx])
+    }
+
     pub fn next_id() -> PlayerId {
         Uuid::new_v4()
     }

@@ -6,7 +6,7 @@
 //! "calling" or not.
 //!
 
-use crate::agents::store::{Player, PlayerId};
+use crate::agents::store::{PlanningPokerStore, Player, PlayerId};
 use std::collections::HashMap;
 use yew::prelude::*;
 use yewtil::NeqAssign;
@@ -38,14 +38,26 @@ impl Component for PlayerCards {
     }
 
     fn view(&self) -> Html {
+        let mut classes = vec!["player-cards", "flex", "space-x-2", "py-4"];
+
+        if self.props.is_calling {
+            classes.push("calling");
+        }
+
         html! {
         <>
-            <h1>{"Poker!"}</h1>
-            <div class="flex space-4">
+            <div class=classes>
             {for self.props.players.iter().map(|(k, v)|
-                html!{ <div key=k.to_string() class=(
-                "card", if v.selected_card.is_none() { "undecided" } else { "" }
-                )>{&v.name}</div>})
+                html!{
+                <div key=k.to_string()>
+                    <div class=(
+                        "card", if v.selected_card.is_none() { "undecided" } else { "" }
+                    )>
+                        <div class="value">{v.selected_card_name().unwrap_or("")}</div>
+                    </div>
+                    <div class="name text-center">{&v.name}</div>
+                </div>
+                })
             }
             </div>
         </>
