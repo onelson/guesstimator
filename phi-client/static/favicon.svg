@@ -2,5 +2,5 @@
 <style>
     .phi { font: italic 40px serif; fill: white; }
 </style>
-    <text x="5" y="34" class="phi">Φ</text>
+    <text x="4" y="34" class="phi">Φ</text>
 </svg>
