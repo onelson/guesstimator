@@ -6,7 +6,7 @@
 //! "calling" or not.
 //!
 
-use crate::agents::store::{PlanningPokerStore, Player, PlayerId};
+use phi_common::{Player, PlayerId};
 use std::collections::HashMap;
 use yew::prelude::*;
 use yewtil::NeqAssign;
