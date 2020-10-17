@@ -1,10 +1,14 @@
-use crate::agents::store::{PlanningPokerStore, Player, PlayerId, Request};
 use crate::player_cards::PlayerCards;
 use crate::text_edit::TextEdit;
+use log::debug;
+use phi_common::{ClientCmd, Player, PlayerId, ServerPush, CARDS};
 use std::collections::HashMap;
+use uuid::Uuid;
 use yew::callback::Callback;
+use yew::format::Text;
 use yew::prelude::*;
-use yewtil::store::{Bridgeable, ReadOnly, StoreWrapper};
+use yew::services::websocket::{WebSocketStatus, WebSocketTask};
+use yew::services::WebSocketService;
 use yewtil::NeqAssign;
 
 pub struct App {
@@ -12,15 +16,16 @@ pub struct App {
     client_id: PlayerId,
     players: HashMap<PlayerId, Player>,
     is_calling: bool,
-    store: Box<dyn Bridge<StoreWrapper<PlanningPokerStore>>>,
+    socket: WebSocketTask,
 }
 
 #[derive(Debug)]
 pub enum Msg {
     SelectCard(usize),
     SetPlayerName(String),
-    StoreChange(ReadOnly<PlanningPokerStore>),
     ToggleCalling,
+    SocketRecv(String),
+    SocketStatus(WebSocketStatus),
 }
 
 impl Component for App {
@@ -28,45 +33,65 @@ impl Component for App {
     type Properties = ();
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let mut store = PlanningPokerStore::bridge(link.callback(Msg::StoreChange));
-        let client_id = Player::next_id();
-        store.send(Request::InitAdminClient(client_id));
-        store.send(Request::AddPlayer(client_id, String::from("Guest")));
+        let mut socket = WebSocketService::connect_text(
+            "ws://localhost:7878/ws",
+            link.callback(|text: Text| Msg::SocketRecv(text.unwrap())), // FIXME
+            link.callback(|status| Msg::SocketStatus(status)),
+        )
+        .unwrap();
 
-        // FIXME: these players are stand-ins. Remove once we have a server.
-        store.send(Request::AddPlayer(Player::next_id(), String::from("Alice")));
-        store.send(Request::AddPlayer(Player::next_id(), String::from("Bob")));
+        let client_id = Uuid::new_v4(); // FIXME: get from server?
 
         App {
             link,
             client_id,
-            store,
             players: Default::default(),
             is_calling: false,
+            socket,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Msg::SocketStatus(status) => {
+                debug!("ws status={:?}", status);
+                if status == WebSocketStatus::Opened {
+                    self.socket.send(
+                        serde_json::to_string(&ClientCmd::RegisterPlayer(self.client_id))
+                            .map_err(Into::into),
+                    );
+                }
+            }
+            Msg::SocketRecv(text) => {
+                let push: ServerPush = serde_json::from_str(&text).unwrap(); //FIXME
+                debug!("ws recv={:?}", push);
+
+                if let ServerPush::StateChange { new_state } = push {
+                    let players_diff = self.players.neq_assign(new_state.players.clone());
+                    let calling_diff = self.is_calling.neq_assign(new_state.is_calling);
+                    return players_diff || calling_diff;
+                }
+            }
             Msg::SelectCard(idx) => {
-                self.store
-                    .send(Request::ChangePlayerCard(self.client_id, Some(idx)));
+                self.socket.send(
+                    serde_json::to_string(&ClientCmd::SetPlayerCard(self.client_id, Some(idx)))
+                        .map_err(Into::into),
+                );
             }
             Msg::SetPlayerName(name) => {
-                self.store.send(Request::RenamePlayer(self.client_id, name));
-            }
-            Msg::StoreChange(store) => {
-                let store = store.borrow();
-                let players_diff = self.players.neq_assign(store.players.clone());
-                let calling_diff = self.is_calling.neq_assign(store.is_calling);
-                return players_diff || calling_diff;
+                self.socket.send(
+                    serde_json::to_string(&ClientCmd::SetPlayerName(self.client_id, name))
+                        .map_err(Into::into),
+                );
             }
             Msg::ToggleCalling => {
-                self.store.send(if self.is_calling {
-                    Request::Resume
+                let cmd = if self.is_calling {
+                    ClientCmd::Resume
                 } else {
-                    Request::Call
-                });
+                    ClientCmd::Call
+                };
+                self.socket
+                    .send(serde_json::to_string(&cmd).map_err(Into::into))
             }
         }
         false
@@ -137,7 +162,7 @@ impl App {
         <p>{format!("{}, please select a card:", player.name)}</p>
 
         <ul class=classes>
-            {for PlanningPokerStore::CARDS.iter().enumerate()
+            {for CARDS.iter().enumerate()
                 .map(|(idx, name)| {
                     let on_click = if self.is_calling  {
                         Callback::noop()

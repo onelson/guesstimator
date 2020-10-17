@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "phi-client",
+    "phi-common",
+    "phi-server",
+]
