@@ -1,4 +1,4 @@
-use crate::commands::{ClientCmd, ServerCmd, StateChange};
+use crate::commands::{ClientCmd, ServerCmd, SocketResponse};
 use crate::play_session::PlaySession;
 use actix::{Actor, Addr, AsyncContext, Handler, StreamHandler};
 use actix_web_actors::ws;
@@ -42,7 +42,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for PhiSocket {
                     self.play_session
                         .try_send(ClientCmd::RegisterPlayer(id))
                         .map_err(|e| error!("{}", e))
-                        .unwrap();
+                        .ok();
                 }
                 Ok(cmd) => {
                     self.play_session
@@ -64,14 +64,17 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for PhiSocket {
     }
 }
 
-impl Handler<StateChange> for PhiSocket {
+impl Handler<SocketResponse> for PhiSocket {
     type Result = ();
 
-    fn handle(
-        &mut self,
-        StateChange(new_state): StateChange,
-        ctx: &mut Self::Context,
-    ) -> Self::Result {
-        ctx.text(serde_json::to_string(&ServerPush::StateChange { new_state }).unwrap());
+    fn handle(&mut self, msg: SocketResponse, ctx: &mut Self::Context) -> Self::Result {
+        match msg {
+            SocketResponse::StateChange(new_state) => {
+                ctx.text(serde_json::to_string(&ServerPush::StateChange { new_state }).unwrap())
+            }
+            SocketResponse::ConfirmAdminKey => {
+                ctx.text(serde_json::to_string(&ServerPush::IsAdminUser).unwrap())
+            }
+        }
     }
 }

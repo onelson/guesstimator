@@ -28,6 +28,7 @@ path = "../phi-common"
 version = "0.3.4"
 features = [
     "Location",
+    "UrlSearchParams",
     "Window",
 ]
 
