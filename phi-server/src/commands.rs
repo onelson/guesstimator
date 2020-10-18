@@ -15,8 +15,11 @@ impl Message for ServerCmd {
     type Result = ();
 }
 
-pub struct StateChange(pub GameState);
+pub enum SocketResponse {
+    StateChange(GameState),
+    ConfirmAdminKey,
+}
 
-impl Message for StateChange {
+impl Message for SocketResponse {
     type Result = ();
 }

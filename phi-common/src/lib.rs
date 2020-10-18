@@ -50,11 +50,14 @@ pub struct GameState {
 /// This will mirror the `Request` enum in the frontend very closely.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ClientCmd {
-    // Stuff that mirrors the client-side code.
     RegisterPlayer(PlayerId),
     SetPlayerName(PlayerId, String),
     SetPlayerCard(PlayerId, Option<usize>),
     RemovePlayer(PlayerId),
+    /// Clients send their key (if they have one) and the server validates it.
+    /// If the key is valid, the server will respond with
+    /// `ServerPush::IsAdminUser`.
+    AdminChallenge(PlayerId, AdminKey),
     Call,
     Resume,
     Reset,
@@ -69,5 +72,8 @@ impl actix::Message for ClientCmd {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum ServerPush {
+    /// Broadcast a new game state.
     StateChange { new_state: GameState },
+    /// Confirm that a client knows the correct admin key.
+    IsAdminUser,
 }

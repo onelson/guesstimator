@@ -1,4 +1,4 @@
-use crate::commands::{ClientCmd, ServerCmd, StateChange};
+use crate::commands::{ClientCmd, ServerCmd, SocketResponse};
 use crate::socket::{ConnectionId, PhiSocket};
 use actix::{Actor, Addr, Context, Handler};
 use log::{debug, error, warn};
@@ -31,7 +31,7 @@ impl PlaySession {
     /// Pushes the current `GameState` to all active connections.
     fn notify_clients(&self) {
         for (_, addr) in self.sockets.values() {
-            addr.try_send(StateChange(self.game_state.clone()))
+            addr.try_send(SocketResponse::StateChange(self.game_state.clone()))
                 .map_err(|e| error!("{}", e))
                 .ok();
         }
@@ -104,6 +104,17 @@ impl Handler<ClientCmd> for PlaySession {
                         prev if prev == card => (),
                         _ => player.selected_card = card,
                     }
+                }
+            }
+            ClientCmd::AdminChallenge(player_id, admin_key) => {
+                if self.admin_key == admin_key {
+                    for (_, addr) in self.sockets.values().filter(|(p, _)| p == &player_id) {
+                        addr.try_send(SocketResponse::ConfirmAdminKey)
+                            .map_err(|e| error!("{}", e))
+                            .ok();
+                    }
+                } else {
+                    warn!("Player `{}` challenged with invalid key.", player_id);
                 }
             }
             ClientCmd::Reset => {
