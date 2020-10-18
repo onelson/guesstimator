@@ -33,8 +33,19 @@ impl Component for App {
     type Properties = ();
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let mut socket = WebSocketService::connect_text(
-            "ws://localhost:7878/ws",
+        let window = yew::utils::window();
+
+        let ws_uri = {
+            let scheme = if window.location().protocol().unwrap() == "https:" {
+                "wss:"
+            } else {
+                "ws:"
+            };
+            format!("{}//{}/ws", scheme, window.location().host().unwrap())
+        };
+
+        let socket = WebSocketService::connect_text(
+            &ws_uri,
             link.callback(|text: Text| Msg::SocketRecv(text.unwrap())), // FIXME
             link.callback(|status| Msg::SocketStatus(status)),
         )

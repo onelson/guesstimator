@@ -9,6 +9,12 @@ module.exports = (env, argv) => {
       contentBase: distPath,
       compress: argv.mode === 'production',
       port: process.env.PORT && parseInt(process.env.PORT, 10) || 8000,
+      proxy: {
+        '/ws': {
+          target: 'ws://localhost:7878',
+          ws: true,
+        }
+      }
     },
     entry: './bootstrap.js',
     output: {

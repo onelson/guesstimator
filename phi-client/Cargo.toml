@@ -27,11 +27,8 @@ path = "../phi-common"
 [dependencies.web-sys]
 version = "0.3.4"
 features = [
-#  'KeyboardEvent',
-#  'EventTarget',
-#  'MouseEvent',
-#  'HtmlElement',
-#  'DomStringMap'
+    "Location",
+    "Window",
 ]
 
 
