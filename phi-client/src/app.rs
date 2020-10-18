@@ -1,6 +1,6 @@
 use crate::player_cards::PlayerCards;
 use crate::text_edit::TextEdit;
-use log::{debug, error, warn};
+use log::{debug, warn};
 use phi_common::{AdminKey, ClientCmd, Player, PlayerId, ServerPush, CARDS};
 use std::collections::HashMap;
 use uuid::Uuid;
