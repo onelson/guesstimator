@@ -44,10 +44,13 @@ impl Component for PlayerCards {
             classes.push("calling");
         }
 
+        let mut players: Vec<(&PlayerId, &Player)> = self.props.players.iter().collect();
+        players.sort_by_key(|item| (item.1.name.to_lowercase(), item.0));
+
         html! {
         <>
             <div class=classes>
-            {for self.props.players.iter().map(|(k, v)|
+            {for players.into_iter().map(|(k, v)|
                 html!{
                 <div key=k.to_string()>
                     <div class=(
