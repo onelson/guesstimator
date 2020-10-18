@@ -2,3 +2,6 @@
 *.swp
 .env
 target/
+node_modules/
+pkg/
+dist/
