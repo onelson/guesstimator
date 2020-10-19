@@ -1336,7 +1336,6 @@ dependencies = [
  "serde_json",
  "strum",
  "strum_macros",
- "uuid",
  "wasm-bindgen",
  "wasm-bindgen-test",
  "wasm-logger",

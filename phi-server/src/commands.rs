@@ -1,4 +1,4 @@
-use crate::socket::{ConnectionId, PhiSocket};
+use crate::socket::PhiSocket;
 use actix::{Addr, Message};
 pub use phi_common::ClientCmd;
 use phi_common::{GameState, PlayerId};
@@ -7,8 +7,11 @@ use phi_common::{GameState, PlayerId};
 ///
 /// These messages are often going originate in socket handlers.
 pub enum ServerCmd {
-    AddConnection(ConnectionId, (PlayerId, Addr<PhiSocket>)),
-    RemoveConnection(ConnectionId),
+    AddConnection(PlayerId, Addr<PhiSocket>),
+    RemoveConnection(PlayerId),
+    /// When the client sends commands to the server, the server needs to add
+    /// the `PlayerId` to the message.
+    Fwd(PlayerId, ClientCmd),
 }
 
 impl Message for ServerCmd {

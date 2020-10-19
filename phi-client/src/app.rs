@@ -1,9 +1,8 @@
 use crate::player_cards::PlayerCards;
 use crate::text_edit::TextEdit;
-use log::{debug, warn};
+use log::{debug, error, warn};
 use phi_common::{AdminKey, ClientCmd, Player, PlayerId, ServerPush, CARDS};
 use std::collections::HashMap;
-use uuid::Uuid;
 use web_sys::UrlSearchParams;
 use yew::callback::Callback;
 use yew::format::Text;
@@ -14,7 +13,7 @@ use yewtil::NeqAssign;
 
 pub struct App {
     link: ComponentLink<Self>,
-    client_id: PlayerId,
+    client_id: Option<PlayerId>,
     admin_key: Option<AdminKey>,
     is_admin: bool,
     players: HashMap<PlayerId, Player>,
@@ -49,12 +48,15 @@ impl Component for App {
 
         let socket = WebSocketService::connect_text(
             &ws_uri,
-            link.callback(|text: Text| Msg::SocketRecv(text.unwrap())), // FIXME
-            link.callback(|status| Msg::SocketStatus(status)),
+            link.callback(|text: Text| {
+                // If the text decode fails, supply an empty string.
+                // The json parse that happens during the `update()` will fail,
+                // but that's a better place for the failure to happen.
+                Msg::SocketRecv(text.unwrap_or_default())
+            }),
+            link.callback(Msg::SocketStatus),
         )
         .unwrap();
-
-        let client_id = Uuid::new_v4(); // FIXME: get from server?
 
         let admin_key = {
             match window.location().search() {
@@ -71,7 +73,8 @@ impl Component for App {
 
         App {
             link,
-            client_id,
+            // The server will send us a client id when we make our connection.
+            client_id: None,
             admin_key,
             // start out as false, but flip to true if the admin key passes validation.
             is_admin: false,
@@ -86,44 +89,39 @@ impl Component for App {
             Msg::SocketStatus(status) => {
                 debug!("ws status={:?}", status);
                 if status == WebSocketStatus::Opened {
-                    self.socket.send(
-                        serde_json::to_string(&ClientCmd::RegisterPlayer(self.client_id))
-                            .map_err(Into::into),
-                    );
                     if let Some(admin_key) = self.admin_key {
                         self.socket.send(
-                            serde_json::to_string(&ClientCmd::AdminChallenge(
-                                self.client_id,
-                                admin_key,
-                            ))
-                            .map_err(Into::into),
+                            serde_json::to_string(&ClientCmd::AdminChallenge(admin_key))
+                                .map_err(Into::into),
                         );
                     }
                 }
             }
-            Msg::SocketRecv(text) => {
-                let push: ServerPush = serde_json::from_str(&text).unwrap(); //FIXME
-                debug!("ws recv={:?}", push);
-
-                return match push {
-                    ServerPush::StateChange { new_state } => {
-                        let players_diff = self.players.neq_assign(new_state.players.clone());
-                        let calling_diff = self.is_calling.neq_assign(new_state.is_calling);
-                        players_diff || calling_diff
-                    }
-                    ServerPush::IsAdminUser => self.is_admin.neq_assign(true),
-                };
-            }
+            Msg::SocketRecv(text) => match serde_json::from_str::<ServerPush>(&text) {
+                Ok(push) => {
+                    debug!("ws recv={:?}", push);
+                    return match push {
+                        ServerPush::StateChange { new_state } => {
+                            let players_diff = self.players.neq_assign(new_state.players.clone());
+                            let calling_diff = self.is_calling.neq_assign(new_state.is_calling);
+                            players_diff || calling_diff
+                        }
+                        ServerPush::IsAdminUser => self.is_admin.neq_assign(true),
+                        ServerPush::PlayerRegistered { player_id } => {
+                            self.client_id.neq_assign(Some(player_id))
+                        }
+                    };
+                }
+                Err(e) => error!("{}", e),
+            },
             Msg::SelectCard(idx) => {
                 self.socket.send(
-                    serde_json::to_string(&ClientCmd::SetPlayerCard(self.client_id, Some(idx)))
-                        .map_err(Into::into),
+                    serde_json::to_string(&ClientCmd::SetPlayerCard(Some(idx))).map_err(Into::into),
                 );
             }
             Msg::SetPlayerName(name) => {
                 self.socket.send(
-                    serde_json::to_string(&ClientCmd::SetPlayerName(self.client_id, name))
-                        .map_err(Into::into),
+                    serde_json::to_string(&ClientCmd::SetPlayerName(name)).map_err(Into::into),
                 );
             }
             Msg::ToggleCalling => {
@@ -144,7 +142,10 @@ impl Component for App {
     }
 
     fn view(&self) -> Html {
-        if !self.players.contains_key(&self.client_id) {
+        if self.client_id.is_none() {
+            return html! {<h1>{"Connecting to server..."}</h1>};
+        }
+        if !self.players.contains_key(&self.client_id.unwrap()) {
             return html! {};
         }
 
@@ -169,10 +170,12 @@ impl Component for App {
 
 impl App {
     fn get_player_name(&self) -> Option<String> {
-        self.players
-            .get(&self.client_id)
-            .as_ref()
-            .map(|p| p.name.clone())
+        self.client_id.and_then(|client_id| {
+            self.players
+                .get(&client_id)
+                .as_ref()
+                .map(|p| p.name.clone())
+        })
     }
     fn build_call_button(&self) -> Html {
         if !self.is_admin {
@@ -182,7 +185,9 @@ impl App {
         html! { <button class="btn-red" onclick=on_click>{"Call"}</button> }
     }
     fn build_card_picker(&self) -> Html {
-        let player = self.players.get(&self.client_id);
+        let player = self
+            .client_id
+            .and_then(|client_id| self.players.get(&client_id));
         if player.is_none() {
             return html! {};
         }
