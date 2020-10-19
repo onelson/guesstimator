@@ -13,3 +13,4 @@ actix = { version = "0.10", optional = true }
 
 [features]
 default = []
+wasm = ["uuid/wasm-bindgen"]

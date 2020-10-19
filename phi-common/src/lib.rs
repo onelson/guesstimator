@@ -26,7 +26,7 @@ pub struct Player {
 impl Player {
     pub fn new(name: String) -> Player {
         Player {
-            name: name.into(),
+            name,
             selected_card: None,
         }
     }
@@ -46,18 +46,15 @@ pub struct GameState {
 }
 
 /// Messages the server will receive from connected clients.
-///
-/// This will mirror the `Request` enum in the frontend very closely.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ClientCmd {
-    RegisterPlayer(PlayerId),
-    SetPlayerName(PlayerId, String),
-    SetPlayerCard(PlayerId, Option<usize>),
-    RemovePlayer(PlayerId),
+    SetPlayerName(String),
+    SetPlayerCard(Option<usize>),
+    RemovePlayer,
     /// Clients send their key (if they have one) and the server validates it.
     /// If the key is valid, the server will respond with
     /// `ServerPush::IsAdminUser`.
-    AdminChallenge(PlayerId, AdminKey),
+    AdminChallenge(AdminKey),
     Call,
     Resume,
     Reset,
@@ -72,6 +69,8 @@ impl actix::Message for ClientCmd {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum ServerPush {
+    /// Sent back to a client as soon as the connection has been established.
+    PlayerRegistered { player_id: PlayerId },
     /// Broadcast a new game state.
     StateChange { new_state: GameState },
     /// Confirm that a client knows the correct admin key.
