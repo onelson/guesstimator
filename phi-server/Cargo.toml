@@ -17,6 +17,13 @@ dotenv = "0.15"
 env_logger = "0.7"
 uuid = { version = "0.8", features = ["serde", "v4"] }
 serde = { version = "1.0", features = ["derive"] }
+async-graphql = { version = "2.0", features = ["uuid"] }
+async-graphql-actix-web = "2.0"
+crossbeam = "0.8"
+
+[dependencies.tokio]
+version = "0.3"
+features = ["stream"]
 
 [dependencies.phi-common]
 path = "../phi-common"
