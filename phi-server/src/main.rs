@@ -61,6 +61,12 @@ async fn main() -> std::io::Result<()> {
             .data(schema.clone())
             .service(web::resource("/gql").guard(guard::Post()).to(gql::index))
             .service(
+                web::resource("/gql")
+                    .guard(guard::Get())
+                    .guard(guard::Header("upgrade", "websocket"))
+                    .to(gql::index_ws),
+            )
+            .service(
                 web::resource("/gql-playground")
                     .guard(guard::Get())
                     .to(gql::index_playground),

@@ -1,13 +1,28 @@
 use crate::gql::model::AdminKey;
-use actix_web::{web, HttpResponse, Result};
+use actix_web::{web, HttpRequest, HttpResponse, Result};
+use actix_web_actors::ws;
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
-use async_graphql_actix_web::{Request, Response};
-use crossbeam::channel::{self, Receiver, Sender};
+use async_graphql::Schema;
+use async_graphql_actix_web::{Request, Response, WSSubscription};
 use phi_common::GameState;
 use std::sync::Mutex;
+use tokio::sync::broadcast;
 
 pub async fn index(schema: web::Data<model::PokerSchema>, req: Request) -> Response {
     schema.execute(req.into_inner()).await.into()
+}
+
+pub async fn index_ws(
+    schema: web::Data<model::PokerSchema>,
+    req: HttpRequest,
+    payload: web::Payload,
+) -> Result<HttpResponse> {
+    ws::start_with_protocols(
+        WSSubscription::new(Schema::clone(&*schema)),
+        &["graphql-ws"],
+        &req,
+        payload,
+    )
 }
 
 pub async fn index_playground() -> Result<HttpResponse> {
@@ -20,43 +35,25 @@ pub async fn index_playground() -> Result<HttpResponse> {
 
 pub mod model;
 
-type Channel<T> = (Sender<T>, Receiver<T>);
-
 pub struct PlaySession {
     admin_key: AdminKey,
     game_state: Mutex<GameState>,
-    /// Mutation queries can use this to request game state changes.    
-    dispatch: Channel<()>,
     /// When the game state changes, this is used to notify subscribers.
-    game_state_subscriptions: Mutex<Vec<Sender<GameState>>>,
+    game_state_notifier: broadcast::Sender<()>,
 }
 
 impl PlaySession {
     pub fn new(admin_key: AdminKey) -> PlaySession {
+        let (tx, _rx) = broadcast::channel(100);
         PlaySession {
             admin_key,
             game_state: Default::default(),
-            dispatch: channel::unbounded(),
-            game_state_subscriptions: Mutex::new(vec![]),
+            game_state_notifier: tx,
         }
     }
 
     /// Pushes the current `GameState` to all active subscriptions.
     fn notify_subscribers(&self) {
-        let game_state = &*self.game_state.lock().unwrap();
-        let mut subscribers = &mut *self.game_state_subscriptions.lock().unwrap();
-        subscribers.retain(|tx| {
-            // XXX: No idea if we'll see an error here if a subscription "ends."
-            // The crossbeam docs mention the channels becoming "disconnected"
-            // when either all senders or receivers drop, but it's not really
-            // clear how the subscriptions terminate on the async-graphql side
-            // of things. There's no hook to run code when the subscription ends.
-            if let Err(e) = tx.send(game_state.clone()) {
-                log::error!("{}", e);
-                false
-            } else {
-                true
-            }
-        });
+        self.game_state_notifier.send(()).unwrap();
     }
 }

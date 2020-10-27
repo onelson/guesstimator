@@ -3,7 +3,7 @@
 //! types used for the game here.
 
 use async_graphql::*;
-use tokio::stream::Stream;
+use tokio::stream::{Stream, StreamExt};
 use uuid::Uuid;
 
 pub type PokerSchema = Schema<Query, Mutation, Subscription>;
@@ -75,12 +75,14 @@ pub struct Mutation;
 impl Mutation {
     async fn register(&self, ctx: &Context<'_>) -> Result<PlayerId> {
         let session = ctx.data_unchecked::<crate::gql::PlaySession>();
-        let mut game_state = session.game_state.lock().unwrap();
         let player_id = PlayerId::new_v4();
-        game_state
-            .players
-            .insert(player_id, phi_common::Player::new(String::from("Guest")));
-
+        {
+            let mut game_state = session.game_state.lock().unwrap();
+            game_state
+                .players
+                .insert(player_id, phi_common::Player::new(String::from("Guest")));
+        }
+        session.notify_subscribers();
         Ok(player_id)
     }
 
@@ -98,14 +100,18 @@ impl Mutation {
         name: String,
     ) -> Result<bool> {
         let session = ctx.data_unchecked::<crate::gql::PlaySession>();
-        let mut game_state = session.game_state.lock().unwrap();
-        if let Some(player) = game_state.players.get_mut(&player_id) {
-            player.name = name;
-            Ok(true)
-        } else {
-            log::warn!("Tried to update name for unknown player: `{}`", player_id);
-            Ok(false)
-        }
+        let outcome = {
+            let mut game_state = session.game_state.lock().unwrap();
+            if let Some(player) = game_state.players.get_mut(&player_id) {
+                player.name = name;
+                Ok(true)
+            } else {
+                log::warn!("Tried to update name for unknown player: `{}`", player_id);
+                Ok(false)
+            }
+        };
+        session.notify_subscribers();
+        outcome
     }
 
     async fn set_player_card(
@@ -115,49 +121,64 @@ impl Mutation {
         card: Option<i32>,
     ) -> Result<bool> {
         let card = card.map(|n| n as usize);
-
         let session = ctx.data_unchecked::<crate::gql::PlaySession>();
-        let mut game_state = session.game_state.lock().unwrap();
-        if let Some(player) = game_state.players.get_mut(&player_id) {
-            match player.selected_card.take() {
-                prev if prev == card => (),
-                _ => player.selected_card = card,
+        let outcome = {
+            let mut game_state = session.game_state.lock().unwrap();
+            if let Some(player) = game_state.players.get_mut(&player_id) {
+                match player.selected_card.take() {
+                    prev if prev == card => (),
+                    _ => player.selected_card = card,
+                }
+                Ok(true)
+            } else {
+                log::warn!("Tried to update card for unknown player: `{}`", player_id);
+                Ok(false)
             }
-            Ok(true)
-        } else {
-            log::warn!("Tried to update card for unknown player: `{}`", player_id);
-            Ok(false)
-        }
+        };
+        session.notify_subscribers();
+        outcome
     }
 
     async fn remove_player(&self, ctx: &Context<'_>, player_id: PlayerId) -> Result<bool> {
         let session = ctx.data_unchecked::<crate::gql::PlaySession>();
-        let mut game_state = session.game_state.lock().unwrap();
-        game_state.players.remove(&player_id);
+        {
+            let mut game_state = session.game_state.lock().unwrap();
+            game_state.players.remove(&player_id);
+        }
+        session.notify_subscribers();
         Ok(true)
     }
 
     async fn call(&self, ctx: &Context<'_>) -> Result<bool> {
         let session = ctx.data_unchecked::<crate::gql::PlaySession>();
-        let mut game_state = session.game_state.lock().unwrap();
-        game_state.is_calling = true;
+        {
+            let mut game_state = session.game_state.lock().unwrap();
+            game_state.is_calling = true;
+        }
+        session.notify_subscribers();
         Ok(true)
     }
 
     async fn resume(&self, ctx: &Context<'_>) -> Result<bool> {
         let session = ctx.data_unchecked::<crate::gql::PlaySession>();
-        let mut game_state = session.game_state.lock().unwrap();
-        game_state.is_calling = false;
+        {
+            let mut game_state = session.game_state.lock().unwrap();
+            game_state.is_calling = false;
+        }
+        session.notify_subscribers();
         Ok(true)
     }
 
     async fn reset(&self, ctx: &Context<'_>) -> Result<bool> {
         let session = ctx.data_unchecked::<crate::gql::PlaySession>();
-        let mut game_state = session.game_state.lock().unwrap();
-        for mut player in game_state.players.values_mut() {
-            player.selected_card = None;
+        {
+            let mut game_state = session.game_state.lock().unwrap();
+            for mut player in game_state.players.values_mut() {
+                player.selected_card = None;
+            }
+            game_state.is_calling = false;
         }
-        game_state.is_calling = false;
+        session.notify_subscribers();
         Ok(true)
     }
 }
@@ -166,7 +187,14 @@ pub struct Subscription;
 
 #[Subscription]
 impl Subscription {
-    async fn game_state(&self) -> impl Stream<Item = GameState> {
-        tokio::stream::iter(vec![])
+    async fn game_state(&self, ctx: &Context<'_>) -> impl Stream<Item = GameState> {
+        let session = ctx.data_unchecked::<crate::gql::PlaySession>();
+        let rx = session.game_state_notifier.subscribe();
+        // Who knows when the next game state change will happen, so seed the
+        // stream with one message to kick things off.
+        let init = tokio::stream::iter(vec![GameState]);
+        // Additional game states will flow over the socket with each time a
+        // mutation happens (ie, when `notify_subscribers()` is called).
+        init.merge(rx.into_stream().map(|_| GameState))
     }
 }

@@ -19,11 +19,10 @@ uuid = { version = "0.8", features = ["serde", "v4"] }
 serde = { version = "1.0", features = ["derive"] }
 async-graphql = { version = "2.0", features = ["uuid"] }
 async-graphql-actix-web = "2.0"
-crossbeam = "0.8"
 
 [dependencies.tokio]
 version = "0.3"
-features = ["stream"]
+features = ["stream", "sync"]
 
 [dependencies.phi-common]
 path = "../phi-common"
