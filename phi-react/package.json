@@ -22,9 +22,9 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "build:css": "postcss ./styles/main.css -o ./public/main.dist.css",
-    "watch:css": "npm run build:css -- --watch",
-    "build": "npm run build:css && npm run build:js",
-    "start": "run-p watch:css start:js"
+    "start:css": "npm run build:css -- --watch",
+    "build": "run-s build:css build:js",
+    "start": "run-p start:css start:js"
   },
   "eslintConfig": {
     "extends": [

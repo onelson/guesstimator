@@ -7,7 +7,7 @@ module.exports = {
     content: [
       './public/index.html',
       './styles/main.css',
-      './src/**/*.(ts|tsx|js)',
+      './src/**/*.{ts,tsx,js,jsx}',
     ],
   },
   theme: {
