@@ -1,27 +1,25 @@
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
 
 :root {
-  --color-brand-pale-blue: #D6E2EE;
-  --color-brand-blue: #568FAA;
-  --color-brand-dark-blue: #18293D;
-  --color-brand-red: #8A0516;
-  --color-brand-bright-red: #C82521;
+  --color-brand-pale-blue: #d6e2ee;
+  --color-brand-blue: #568faa;
+  --color-brand-dark-blue: #18293d;
+  --color-brand-red: #8a0516;
+  --color-brand-bright-red: #c82521;
 }
 
 @layer base {
   body {
-    background-color: theme("colors.brand.pale-blue");
     @apply text-brand-dark-blue;
+    background-color: theme('colors.brand.pale-blue');
   }
 }
 
 @layer components {
-
   .card {
-    @apply
-      select-none
+    @apply select-none
       border-2
       border-brand-blue
       rounded
@@ -55,15 +53,14 @@
   }
 
   .card-picker:not(.calling) .card:hover {
-    @apply
-      duration-200
+    @apply duration-200
       shadow-2xl
       transform
       scale-125
       bg-brand-blue
       border-brand-dark-blue
       text-white
-      cursor-pointer
+      cursor-pointer;
   }
 
   .card-picker.calling .card {
