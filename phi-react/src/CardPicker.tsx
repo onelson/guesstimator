@@ -1,7 +1,15 @@
 import React from 'react';
 
-export function CardPicker() {
-  const isCalling = false; // FIXME
+type Props = {
+  onSelect: (card: number) => void;
+  isCalling: boolean;
+  selectedCard: number | undefined;
+  playerName: string;
+  cards: string[];
+};
+
+export function CardPicker(props: Props) {
+  const { isCalling, selectedCard, playerName, cards, onSelect } = props;
 
   const classes = [
     'card-picker',
@@ -18,11 +26,6 @@ export function CardPicker() {
     classes.push('calling');
   }
 
-  const playerName = 'J. Doe'; // FIXME
-  const cards: string[] = []; // FIXME
-  const player: any = {}; // FIXME
-  const handleClick = () => {}; // FIXME
-
   return (
     <div>
       <p>{`${playerName}, please select a card:`}</p>
@@ -31,12 +34,16 @@ export function CardPicker() {
         {cards.map((name, idx) => {
           const classes = ['card'];
 
-          if (player.selectedCard === idx) {
+          if (selectedCard === idx) {
             classes.push('active');
           }
 
           return (
-            <li key={name} className={classes.join(' ')} onClick={handleClick}>
+            <li
+              key={name}
+              className={classes.join(' ')}
+              onClick={() => onSelect(idx)}
+            >
               <div className="value">{name}</div>
             </li>
           );
