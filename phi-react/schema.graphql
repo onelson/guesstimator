@@ -1,0 +1,48 @@
+# This file was generated based on ".graphqlconfig". Do not edit manually.
+
+schema {
+    query: Query
+    mutation: Mutation
+    subscription: Subscription
+}
+
+type GameState {
+    isCalling: Boolean!
+    players: [Player!]!
+}
+
+type Mutation {
+    """
+
+    Clients that want admin privileges send their key.
+    The bool return is for if the keys match or not.
+    """
+    adminChallenge(key: UUID!): Boolean!
+    call: Boolean!
+    register: UUID!
+    removePlayer(playerId: UUID!): Boolean!
+    reset: Boolean!
+    resume: Boolean!
+    setPlayerCard(card: Int, playerId: UUID!): Boolean!
+    setPlayerName(name: String!, playerId: UUID!): Boolean!
+}
+
+type Player {
+    id: UUID!
+    "The name displayed with the cards."
+    name: String!
+    "Index into the card data, `CARDS`."
+    selectedCard: Int
+}
+
+type Query {
+    cards: [String!]!
+    gameState: GameState!
+}
+
+type Subscription {
+    gameState: GameState!
+}
+
+
+scalar UUID
