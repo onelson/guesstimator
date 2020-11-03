@@ -2,6 +2,9 @@ import React, { useCallback, useEffect } from 'react';
 import { PlayerCards } from './PlayerCards';
 import { CardPicker } from './CardPicker';
 import { useQuery, gql, useMutation } from '@apollo/client';
+import { GetCards } from './__generated__/GetCards';
+import { GetGameState } from './__generated__/GetGameState';
+import { GetClientId } from './__generated__/GetClientId';
 
 const REGISTER = gql`
   mutation GetClientId {
@@ -34,22 +37,15 @@ const SET_PLAYER_CARD = gql`
   }
 `;
 
-type Player = { id: string; selectedCard: number | undefined; name: string };
-
-function getCurrentPlayer(
-  players: Player[],
-  clientId: string
-): Player | undefined {
-  return players.find((x) => x.id === clientId);
-}
-
 function App() {
-  const { loading, error, data: cardData } = useQuery(GET_CARDS);
-  const { data: gameStateData, refetch: refetchGameState } = useQuery(
-    GET_GAME_STATE
-  );
+  const { loading, error, data: cardData } = useQuery<GetCards>(GET_CARDS);
+  const { data: gameStateData, refetch: refetchGameState } = useQuery<
+    GetGameState
+  >(GET_GAME_STATE);
 
-  const [getClientId, { data: registerData }] = useMutation(REGISTER);
+  const [getClientId, { data: registerData }] = useMutation<GetClientId>(
+    REGISTER
+  );
   const [setPlayerCard] = useMutation(SET_PLAYER_CARD);
 
   useEffect(
@@ -62,11 +58,10 @@ function App() {
     []
   );
 
-  const isCalling = gameStateData?.gameState.isCalling;
-
-  const players: Player[] | undefined = gameStateData?.gameState.players;
+  const isCalling = !!gameStateData?.gameState.isCalling;
+  const players = gameStateData?.gameState.players;
   const clientId = registerData?.register;
-  const player = players && clientId && getCurrentPlayer(players, clientId);
+  const player = players && clientId && players.find((x) => x.id === clientId);
   const cards = cardData?.cards;
 
   const onSelectCard = useCallback(

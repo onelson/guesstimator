@@ -25,9 +25,12 @@
     "eject": "react-scripts eject",
     "build:css": "postcss ./src/styles/main.css -o ./src/styles/_main.dist.css",
     "start:css": "npm run build:css -- --watch",
-    "build": "run-s build:css build:js",
-    "start": "run-p start:css start:js",
-    "fmt": "prettier --write './src/**/*.{html,css,js,jsx,ts,tsx}'"
+    "build": "run-s build:codegen build:css build:js",
+    "start": "run-p start:codegen start:css start:js",
+    "fmt": "prettier --write './src/**/*.{html,css,js,jsx,ts,tsx}'",
+    "gql:get-schema": "apollo client:download-schema schema.graphql",
+    "build:codegen": "apollo client:codegen --target typescript",
+    "start:codegen": "npm run build:codegen -- --watch"
   },
   "eslintConfig": {
     "extends": [
@@ -48,6 +51,7 @@
     ]
   },
   "devDependencies": {
+    "apollo": "^2.31.0",
     "http-proxy-middleware": "^1.0.6",
     "npm-run-all": "^4.1.5",
     "postcss": "^8.1.4",

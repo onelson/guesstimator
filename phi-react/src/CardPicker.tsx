@@ -3,7 +3,7 @@ import React from 'react';
 type Props = {
   onSelect: (card: number) => void;
   isCalling: boolean;
-  selectedCard: number | undefined;
+  selectedCard: number | null;
   playerName: string;
   cards: string[];
 };
