@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect } from 'react';
 import { PlayerCards } from './PlayerCards';
 import { CardPicker } from './CardPicker';
-import { useQuery, gql, useMutation } from '@apollo/client';
+import { useQuery, gql, useMutation, useSubscription } from '@apollo/client';
 import { GetCards } from './__generated__/GetCards';
 import { GetGameState } from './__generated__/GetGameState';
 import { GetClientId } from './__generated__/GetClientId';
@@ -19,7 +19,7 @@ const GET_CARDS = gql`
 `;
 
 const GET_GAME_STATE = gql`
-  query GetGameState {
+  subscription GetGameState {
     gameState {
       isCalling
       players {
@@ -38,10 +38,8 @@ const SET_PLAYER_CARD = gql`
 `;
 
 function App() {
-  const { loading, error, data: cardData } = useQuery<GetCards>(GET_CARDS);
-  const { data: gameStateData, refetch: refetchGameState } = useQuery<
-    GetGameState
-  >(GET_GAME_STATE);
+  const { data: cardData } = useQuery<GetCards>(GET_CARDS);
+  const { data: gameStateData } = useSubscription<GetGameState>(GET_GAME_STATE);
 
   const [getClientId, { data: registerData }] = useMutation<GetClientId>(
     REGISTER
@@ -50,9 +48,7 @@ function App() {
 
   useEffect(
     () => {
-      getClientId()
-        .then(refetchGameState)
-        .catch((reason) => console.error(reason));
+      getClientId().catch((reason) => console.error(reason));
     },
     // eslint-disable-next-line
     []
@@ -68,11 +64,9 @@ function App() {
     (card: number) => {
       setPlayerCard({
         variables: { playerId: clientId, card: card },
-      })
-        .then(refetchGameState)
-        .catch((reason) => console.error(reason));
+      }).catch((reason) => console.error(reason));
     },
-    [setPlayerCard, clientId, refetchGameState]
+    [setPlayerCard, clientId]
   );
 
   const handleCall = () => {}; // FIXME
