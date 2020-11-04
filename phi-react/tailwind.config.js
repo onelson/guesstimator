@@ -14,12 +14,12 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          'pale-blue':  'var(--color-brand-pale-blue)',
-          'blue':  'var(--color-brand-blue)',
-          'dark-blue':  'var(--color-brand-dark-blue)',
-          'red':        'var(--color-brand-red)',
+          'pale-blue': 'var(--color-brand-pale-blue)',
+          blue: 'var(--color-brand-blue)',
+          'dark-blue': 'var(--color-brand-dark-blue)',
+          red: 'var(--color-brand-red)',
           'bright-red': 'var(--color-brand-bright-red)',
-        }
+        },
       },
     },
   },
