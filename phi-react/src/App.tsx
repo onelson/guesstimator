@@ -174,9 +174,14 @@ function App() {
         isCalling={isCalling}
       />
       {isAdmin ? (
-        <button className="btn-red" onClick={toggleCalling}>
-          Call
-        </button>
+        <div className="flex space-x-4">
+          <button className="btn-red flex-grow" onClick={toggleCalling}>
+            Call
+          </button>
+          <button className="btn-red flex-grow" onClick={() => reset()}>
+            Reset
+          </button>
+        </div>
       ) : null}
     </div>
   );
