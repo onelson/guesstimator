@@ -16,7 +16,7 @@ import './styles/_main.dist.css';
 import { WebSocketLink } from '@apollo/client/link/ws';
 import { getMainDefinition } from '@apollo/client/utilities';
 
-const client = (() => {
+function getClient() {
   const httpLink = new HttpLink({
     uri: '/gql',
   });
@@ -46,11 +46,11 @@ const client = (() => {
     cache: new InMemoryCache(),
     link: splitLink,
   });
-})();
+}
 
 ReactDOM.render(
   <React.StrictMode>
-    <ApolloProvider client={client}>
+    <ApolloProvider client={getClient()}>
       <App />
     </ApolloProvider>
   </React.StrictMode>,
