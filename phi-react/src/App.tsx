@@ -1,15 +1,23 @@
 import React, { useCallback, useEffect } from 'react';
 import { PlayerCards } from './PlayerCards';
 import { CardPicker } from './CardPicker';
-import { useQuery, gql, useMutation, useSubscription } from '@apollo/client';
+import { gql, useMutation, useQuery, useSubscription } from '@apollo/client';
 import { GetCards } from './__generated__/GetCards';
 import { GetGameState } from './__generated__/GetGameState';
 import { GetClientId } from './__generated__/GetClientId';
 import { SetPlayerCard } from './__generated__/SetPlayerCard';
+import { NameSetter } from './NameSetter';
+import { SetPlayerName } from './__generated__/SetPlayerName';
 
 const REGISTER = gql`
   mutation GetClientId {
     register
+  }
+`;
+
+const SET_PLAYER_NAME = gql`
+  mutation SetPlayerName($playerId: UUID!, $name: String!) {
+    setPlayerName(playerId: $playerId, name: $name)
   }
 `;
 
@@ -46,6 +54,7 @@ function App() {
     REGISTER
   );
   const [setPlayerCard] = useMutation<SetPlayerCard>(SET_PLAYER_CARD);
+  const [setPlayerName] = useMutation<SetPlayerName>(SET_PLAYER_NAME);
 
   useEffect(
     () => {
@@ -80,10 +89,16 @@ function App() {
   return (
     <div className="container mx-auto flex flex-col space-y-4">
       <PlayerCards gameStateData={gameStateData} cards={cards} />
-      <div>
-        <label>Name:</label>
-        <input />
-      </div>
+      <NameSetter
+        onSubmit={(name) =>
+          setPlayerName({
+            variables: {
+              playerId: clientId,
+              name,
+            },
+          })
+        }
+      />
       <CardPicker
         cards={cards}
         playerName={player?.name}
