@@ -8,6 +8,7 @@ import { GetClientId } from './__generated__/GetClientId';
 import { SetPlayerCard } from './__generated__/SetPlayerCard';
 import { NameSetter } from './NameSetter';
 import { SetPlayerName } from './__generated__/SetPlayerName';
+import { CheckAdminKey } from './__generated__/CheckAdminKey';
 
 const REGISTER = gql`
   mutation GetClientId {
@@ -46,7 +47,21 @@ const SET_PLAYER_CARD = gql`
   }
 `;
 
+const CHECK_ADMIN_KEY = gql`
+  mutation CheckAdminKey($key: UUID!) {
+    adminChallenge(key: $key)
+  }
+`;
+
 function App() {
+  const qs = new URLSearchParams(window.location.search);
+  const adminKey = qs.get('key');
+
+  const [checkAdminKey, { data: adminChallengeData }] = useMutation<
+    CheckAdminKey
+  >(CHECK_ADMIN_KEY);
+
+  const isAdmin = !!adminChallengeData?.adminChallenge;
   const { data: cardData } = useQuery<GetCards>(GET_CARDS);
   const { data: gameStateData } = useSubscription<GetGameState>(GET_GAME_STATE);
 
@@ -59,6 +74,13 @@ function App() {
   useEffect(
     () => {
       getClientId().catch((reason) => console.error(reason));
+      if (adminKey) {
+        checkAdminKey({
+          variables: {
+            key: adminKey,
+          },
+        }).catch((reason) => console.error(reason));
+      }
     },
     // eslint-disable-next-line
     []
@@ -80,7 +102,6 @@ function App() {
   );
 
   const handleCall = () => {}; // FIXME
-  const isAdmin = true; // FIXME
 
   if (!cards || !player || !gameStateData) {
     return <h1>loading...</h1>;
