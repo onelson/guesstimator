@@ -27,7 +27,7 @@ export function PlayerCards(props: Props) {
               }`}
             >
               <div className={'value'}>
-                {player.selectedCard ? cards[player.selectedCard] : ''}
+                {player.selectedCard !== null ? cards[player.selectedCard] : ''}
               </div>
             </div>
             <div className={'name text-center'}>{player.name}</div>
