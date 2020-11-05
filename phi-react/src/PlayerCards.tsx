@@ -21,7 +21,11 @@ export function PlayerCards(props: Props) {
       {players.map((player) => {
         return (
           <div key={player.id}>
-            <div className={`card ${player.selectedCard ? '' : 'undecided'}`}>
+            <div
+              className={`card ${
+                player.selectedCard === null ? 'undecided' : ''
+              }`}
+            >
               <div className={'value'}>
                 {player.selectedCard ? cards[player.selectedCard] : ''}
               </div>
