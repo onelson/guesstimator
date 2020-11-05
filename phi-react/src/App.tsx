@@ -60,6 +60,24 @@ const CHECK_ADMIN_KEY = gql`
   }
 `;
 
+const CALL = gql`
+  mutation Call {
+    call
+  }
+`;
+
+const RESUME = gql`
+  mutation Resume {
+    resume
+  }
+`;
+
+const RESET = gql`
+  mutation Reset {
+    reset
+  }
+`;
+
 function App() {
   const qs = new URLSearchParams(window.location.search);
   const adminKey = qs.get('key');
@@ -78,6 +96,10 @@ function App() {
   const [setPlayerCard] = useMutation<SetPlayerCard>(SET_PLAYER_CARD);
   const [setPlayerName] = useMutation<SetPlayerName>(SET_PLAYER_NAME);
   const [removePlayer] = useMutation<RemovePlayer>(REMOVE_PLAYER);
+
+  const [call] = useMutation(CALL);
+  const [resume] = useMutation(RESUME);
+  const [reset] = useMutation(RESET);
 
   useEffect(
     () => {
@@ -104,6 +126,15 @@ function App() {
   }, [clientId, removePlayer]);
 
   const isCalling = !!gameStateData?.gameState.isCalling;
+
+  const toggleCalling = useCallback(() => {
+    if (isCalling) {
+      resume().catch((reason) => console.error(reason));
+    } else {
+      call().catch((reason) => console.error(reason));
+    }
+  }, [isCalling]);
+
   const players = gameStateData?.gameState.players;
 
   const player = players && clientId && players.find((x) => x.id === clientId);
@@ -117,8 +148,6 @@ function App() {
     },
     [setPlayerCard, clientId]
   );
-
-  const handleCall = () => {}; // FIXME
 
   if (!cards || !player || !gameStateData) {
     return <h1>loading...</h1>;
@@ -145,7 +174,7 @@ function App() {
         isCalling={isCalling}
       />
       {isAdmin ? (
-        <button className="btn-red" onClick={handleCall}>
+        <button className="btn-red" onClick={toggleCalling}>
           Call
         </button>
       ) : null}
