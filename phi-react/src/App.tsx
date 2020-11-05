@@ -5,6 +5,7 @@ import { useQuery, gql, useMutation, useSubscription } from '@apollo/client';
 import { GetCards } from './__generated__/GetCards';
 import { GetGameState } from './__generated__/GetGameState';
 import { GetClientId } from './__generated__/GetClientId';
+import { SetPlayerCard } from './__generated__/SetPlayerCard';
 
 const REGISTER = gql`
   mutation GetClientId {
@@ -44,7 +45,7 @@ function App() {
   const [getClientId, { data: registerData }] = useMutation<GetClientId>(
     REGISTER
   );
-  const [setPlayerCard] = useMutation(SET_PLAYER_CARD);
+  const [setPlayerCard] = useMutation<SetPlayerCard>(SET_PLAYER_CARD);
 
   useEffect(
     () => {
@@ -72,13 +73,13 @@ function App() {
   const handleCall = () => {}; // FIXME
   const isAdmin = true; // FIXME
 
-  if (!cards || !player) {
+  if (!cards || !player || !gameStateData) {
     return <h1>loading...</h1>;
   }
 
   return (
     <div className="container mx-auto flex flex-col space-y-4">
-      <PlayerCards />
+      <PlayerCards gameStateData={gameStateData} cards={cards} />
       <div>
         <label>Name:</label>
         <input />

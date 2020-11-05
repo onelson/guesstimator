@@ -1,15 +1,20 @@
 import React from 'react';
+import { GetGameState } from './__generated__/GetGameState';
 
-type Player = any; // FIXME
-export function PlayerCards() {
-  const isCalling = true; // FIXME
+type Props = {
+  // should be fine to receive as a prop since the websocket broadcast only
+  // fires when the gameState data changes.
+  gameStateData: GetGameState;
+  cards: string[];
+};
+
+export function PlayerCards(props: Props) {
+  const { isCalling, players } = props.gameStateData.gameState;
+  const { cards } = props;
   const classes = ['player-cards', 'flex', 'space-x-2', 'py-4'];
   if (isCalling) {
     classes.push('calling');
   }
-
-  const players: Player[] = [{ id: 'xxxx', selectedCard: 1, name: 'Trent' }]; // FIXME
-  const cards: string[] = ['a', 'b']; // FIXME
 
   return (
     <div className={classes.join(' ')}>
