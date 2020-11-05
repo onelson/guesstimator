@@ -54,6 +54,8 @@ impl PlaySession {
 
     /// Pushes the current `GameState` to all active subscriptions.
     fn notify_subscribers(&self) {
-        self.game_state_notifier.send(()).unwrap();
+        if let Err(err) = self.game_state_notifier.send(()) {
+            log::warn!("{}", err);
+        }
     }
 }
