@@ -9,10 +9,17 @@ import { SetPlayerCard } from './__generated__/SetPlayerCard';
 import { NameSetter } from './NameSetter';
 import { SetPlayerName } from './__generated__/SetPlayerName';
 import { CheckAdminKey } from './__generated__/CheckAdminKey';
+import { RemovePlayer } from './__generated__/RemovePlayer';
 
 const REGISTER = gql`
   mutation GetClientId {
     register
+  }
+`;
+
+const REMOVE_PLAYER = gql`
+  mutation RemovePlayer($playerId: UUID!) {
+    removePlayer(playerId: $playerId)
   }
 `;
 
@@ -70,6 +77,7 @@ function App() {
   );
   const [setPlayerCard] = useMutation<SetPlayerCard>(SET_PLAYER_CARD);
   const [setPlayerName] = useMutation<SetPlayerName>(SET_PLAYER_NAME);
+  const [removePlayer] = useMutation<RemovePlayer>(REMOVE_PLAYER);
 
   useEffect(
     () => {
@@ -86,9 +94,18 @@ function App() {
     []
   );
 
+  const clientId = registerData?.register;
+  useEffect(() => {
+    window.addEventListener('beforeunload', () => {
+      removePlayer({ variables: { playerId: clientId } }).catch((reason) =>
+        console.error(reason)
+      );
+    });
+  }, [clientId, removePlayer]);
+
   const isCalling = !!gameStateData?.gameState.isCalling;
   const players = gameStateData?.gameState.players;
-  const clientId = registerData?.register;
+
   const player = players && clientId && players.find((x) => x.id === clientId);
   const cards = cardData?.cards;
 
