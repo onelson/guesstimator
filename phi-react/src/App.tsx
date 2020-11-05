@@ -133,7 +133,7 @@ function App() {
     } else {
       call().catch((reason) => console.error(reason));
     }
-  }, [isCalling]);
+  }, [isCalling, call, resume]);
 
   const players = gameStateData?.gameState.players;
 
