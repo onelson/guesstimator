@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-
 use std::collections::HashMap;
+use std::time::SystemTime;
 use uuid::Uuid;
 
 /// The names of the cards in the planning poker deck.
@@ -21,6 +21,7 @@ pub struct Player {
     pub name: String,
     /// Index into the card data, `CARDS`.
     pub selected_card: Option<usize>,
+    pub last_heartbeat: SystemTime,
 }
 
 impl Player {
@@ -28,6 +29,7 @@ impl Player {
         Player {
             name,
             selected_card: None,
+            last_heartbeat: SystemTime::now(),
         }
     }
 
