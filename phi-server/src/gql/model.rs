@@ -99,13 +99,15 @@ impl Mutation {
                     player_id
                 );
             }
+            let prev_players = state.players.clone();
+
             state
                 .players
                 .retain(|_k, v| v.last_heartbeat.elapsed().unwrap() < MAX_PLAYER_IDLE);
-            if *state != prev {
+            if state.players != prev_players {
                 log::warn!(
                     "removing idle players: {}",
-                    prev.players.len() - state.players.len()
+                    prev_players.len() - state.players.len()
                 );
                 session.notify_subscribers();
             }
