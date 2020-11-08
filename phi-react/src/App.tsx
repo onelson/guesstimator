@@ -143,7 +143,13 @@ function App() {
     const timer = window.setInterval(() => {
       sendHeartbeat({
         variables: { playerId: clientId },
-      }).catch((reason) => console.error(reason));
+      }).catch((reason) => {
+        console.error(reason);
+        // If the heartbeat fails, it could be because the server is down.
+        // If the server is down, that probably means the clientId is stale, so
+        // reload the page to try and get a new one.
+        window.location.reload(true);
+      });
     }, 3_000);
 
     return () => {
