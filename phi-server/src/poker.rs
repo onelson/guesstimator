@@ -1,12 +1,20 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Mutex;
 use std::time::SystemTime;
+use tokio::sync::broadcast;
 use uuid::Uuid;
 
 /// The names of the cards in the planning poker deck.
-pub const CARDS: [&str; 12] = [
+pub const FIB_DECK: [&str; 12] = [
     "0", "1", "2", "3", "5", "8", "13", "21", "100", "∞", "?", "☕",
 ];
+pub const DAYS_DECK: [&str; 9] = ["0.5", "1", "1.5", "2", "3", "5", "∞", "?", "☕"];
+
+pub enum DeckType {
+    Fibonacci,
+    Days,
+}
 
 /// Stable handle for identifying players, regardless of what the display name
 /// is.
@@ -41,4 +49,34 @@ pub struct GameState {
     /// While "calling" player card selections are *frozen* and revealed to all
     /// players.
     pub is_calling: bool,
+}
+
+pub struct PlaySession {
+    pub admin_key: AdminKey,
+    pub game_state: Mutex<GameState>,
+    /// When the game state changes, this is used to notify subscribers.
+    pub game_state_notifier: broadcast::Sender<()>,
+    pub deck: &'static [&'static str],
+}
+
+impl PlaySession {
+    pub fn new(admin_key: AdminKey, deck_type: DeckType) -> PlaySession {
+        let (tx, _rx) = broadcast::channel(100);
+        PlaySession {
+            admin_key,
+            game_state: Default::default(),
+            game_state_notifier: tx,
+            deck: match deck_type {
+                DeckType::Fibonacci => &FIB_DECK,
+                DeckType::Days => &DAYS_DECK,
+            },
+        }
+    }
+
+    /// Pushes the current `GameState` to all active subscriptions.
+    pub fn notify_subscribers(&self) {
+        if let Err(err) = self.game_state_notifier.send(()) {
+            log::warn!("{}", err);
+        }
+    }
 }
