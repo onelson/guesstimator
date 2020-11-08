@@ -8,10 +8,7 @@ use uuid::Uuid;
 
 pub type PokerSchema = Schema<Query, Mutation, Subscription>;
 
-/// The names of the cards in the planning poker deck.
-const CARDS: [&str; 12] = [
-    "0", "1", "2", "3", "5", "8", "13", "21", "100", "∞", "?", "☕",
-];
+use crate::poker::CARDS;
 
 /// Stable handle for identifying players, regardless of what the display name
 /// is.
@@ -29,8 +26,8 @@ struct Player {
     pub selected_card: Option<i32>,
 }
 
-impl From<(&PlayerId, &phi_common::Player)> for Player {
-    fn from((id, others): (&PlayerId, &phi_common::Player)) -> Self {
+impl From<(&PlayerId, &crate::poker::Player)> for Player {
+    fn from((id, others): (&PlayerId, &crate::poker::Player)) -> Self {
         Player {
             id: *id,
             name: others.name.clone(),
@@ -80,7 +77,7 @@ impl Mutation {
             let mut game_state = session.game_state.lock().unwrap();
             game_state
                 .players
-                .insert(player_id, phi_common::Player::new(String::from("Guest")));
+                .insert(player_id, crate::poker::Player::new(String::from("Guest")));
         }
         session.notify_subscribers();
         Ok(player_id)
