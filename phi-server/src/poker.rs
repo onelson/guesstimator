@@ -32,10 +32,6 @@ impl Player {
             last_heartbeat: SystemTime::now(),
         }
     }
-
-    pub fn selected_card_name(&self) -> Option<&'static str> {
-        self.selected_card.map(|idx| self::CARDS[idx])
-    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]

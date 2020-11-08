@@ -90,7 +90,6 @@ impl Mutation {
         let session = ctx.data_unchecked::<crate::gql::PlaySession>();
         {
             let mut state = session.game_state.lock().unwrap();
-            let prev = state.clone();
             if let Some(player) = state.players.get_mut(&player_id) {
                 player.last_heartbeat = SystemTime::now();
             } else {
