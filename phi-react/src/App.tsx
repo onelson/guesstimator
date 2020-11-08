@@ -23,6 +23,12 @@ const REMOVE_PLAYER = gql`
   }
 `;
 
+const SEND_HEARTBEAT = gql`
+  mutation SendHeartbeat($playerId: UUID!) {
+    heartbeat(playerId: $playerId)
+  }
+`;
+
 const SET_PLAYER_NAME = gql`
   mutation SetPlayerName($playerId: UUID!, $name: String!) {
     setPlayerName(playerId: $playerId, name: $name)
@@ -96,6 +102,7 @@ function App() {
   const [setPlayerCard] = useMutation<SetPlayerCard>(SET_PLAYER_CARD);
   const [setPlayerName] = useMutation<SetPlayerName>(SET_PLAYER_NAME);
   const [removePlayer] = useMutation<RemovePlayer>(REMOVE_PLAYER);
+  const [sendHeartbeat] = useMutation(SEND_HEARTBEAT);
 
   const [call] = useMutation(CALL);
   const [resume] = useMutation(RESUME);
@@ -118,12 +125,31 @@ function App() {
 
   const clientId = registerData?.register;
   useEffect(() => {
+    // When a page unloads, try to remove the player from the game.
+    //
+    // This isn't always reliable since:
+    // - the request to register can fire, and
+    // - the page can unload before the client id comes back
+    //
+    // To cover this gap we also use heartbeats to see when the last contact
+    // from a player was, then remove players that haven't phoned home within
+    // some deadline.
     window.addEventListener('beforeunload', () => {
       removePlayer({ variables: { playerId: clientId } }).catch((reason) =>
         console.error(reason)
       );
     });
-  }, [clientId, removePlayer]);
+
+    const timer = window.setInterval(() => {
+      sendHeartbeat({
+        variables: { playerId: clientId },
+      }).catch((reason) => console.error(reason));
+    }, 3_000);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [clientId, removePlayer, sendHeartbeat]);
 
   const isCalling = !!gameStateData?.gameState.isCalling;
 

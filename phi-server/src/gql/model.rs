@@ -9,7 +9,7 @@ use tokio::stream::{Stream, StreamExt};
 
 /// Players that fail to send a heartbeat within this time will be dropped from
 /// the game.
-const MAX_PLAYER_IDLE: Duration = Duration::from_secs(30);
+const MAX_PLAYER_IDLE: Duration = Duration::from_secs(10);
 
 pub type PokerSchema = Schema<Query, Mutation, Subscription>;
 

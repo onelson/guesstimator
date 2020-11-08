@@ -1,48 +1,79 @@
-# This file was generated based on ".graphqlconfig". Do not edit manually.
+"""Directs the executor to query only when the field exists."""
+directive @ifdef on FIELD
 
-schema {
-    query: Query
-    mutation: Mutation
-    subscription: Subscription
-}
+"""
+Direct the client to resolve this field locally, either from the cache or local resolvers.
+"""
+directive @client(
+  """
+  When true, the client will never use the cache for this value. See
+  https://www.apollographql.com/docs/react/essentials/local-state/#forcing-resolvers-with-clientalways-true
+  """
+  always: Boolean
+) on FIELD | FRAGMENT_DEFINITION | INLINE_FRAGMENT
+
+"""
+Export this locally resolved field as a variable to be used in the remainder of this query. See
+https://www.apollographql.com/docs/react/essentials/local-state/#using-client-fields-as-variables
+"""
+directive @export(
+  """The variable name to export this field as."""
+  as: String!
+) on FIELD
+
+"""
+Specify a custom store key for this result. See
+https://www.apollographql.com/docs/react/advanced/caching/#the-connection-directive
+"""
+directive @connection(
+  """Specify the store key."""
+  key: String!
+
+  """
+  An array of query argument names to include in the generated custom store key.
+  """
+  filter: [String!]
+) on FIELD
 
 type GameState {
-    isCalling: Boolean!
-    players: [Player!]!
+  isCalling: Boolean!
+  players: [Player!]!
 }
 
 type Mutation {
-    """
+  register: UUID!
 
-    Clients that want admin privileges send their key.
-    The bool return is for if the keys match or not.
-    """
-    adminChallenge(key: UUID!): Boolean!
-    call: Boolean!
-    register: UUID!
-    removePlayer(playerId: UUID!): Boolean!
-    reset: Boolean!
-    resume: Boolean!
-    setPlayerCard(card: Int, playerId: UUID!): Boolean!
-    setPlayerName(name: String!, playerId: UUID!): Boolean!
+  """
+  Clients that want admin privileges send their key.
+  The bool return is for if the keys match or not.
+  """
+  adminChallenge(key: UUID!): Boolean!
+  heartbeat(playerId: UUID!): Boolean!
+  setPlayerName(playerId: UUID!, name: String!): Boolean!
+  setPlayerCard(playerId: UUID!, card: Int): Boolean!
+  removePlayer(playerId: UUID!): Boolean!
+  call: Boolean!
+  resume: Boolean!
+  reset: Boolean!
 }
 
 type Player {
-    id: UUID!
-    "The name displayed with the cards."
-    name: String!
-    "Index into the card data, `CARDS`."
-    selectedCard: Int
+  id: UUID!
+
+  """The name displayed with the cards."""
+  name: String!
+
+  """Index into the card data, `CARDS`."""
+  selectedCard: Int
 }
 
 type Query {
-    cards: [String!]!
-    gameState: GameState!
+  cards: [String!]!
+  gameState: GameState!
 }
 
 type Subscription {
-    gameState: GameState!
+  gameState: GameState!
 }
-
 
 scalar UUID
