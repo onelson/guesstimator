@@ -60,11 +60,6 @@ pub enum ClientCmd {
     Reset,
 }
 
-#[cfg(feature = "actix")]
-impl actix::Message for ClientCmd {
-    type Result = ();
-}
-
 /// Used to push messages to connected websocket clients.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
