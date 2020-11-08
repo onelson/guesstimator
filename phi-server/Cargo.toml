@@ -22,6 +22,3 @@ async-graphql-actix-web = "2.0"
 [dependencies.tokio]
 version = "0.3"
 features = ["stream", "sync"]
-
-[dependencies.phi-common]
-path = "../phi-common"

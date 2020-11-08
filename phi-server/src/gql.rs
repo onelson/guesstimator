@@ -1,10 +1,10 @@
 use crate::gql::model::AdminKey;
+use crate::poker::GameState;
 use actix_web::{web, HttpRequest, HttpResponse, Result};
 use actix_web_actors::ws;
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
 use async_graphql::Schema;
 use async_graphql_actix_web::{Request, Response, WSSubscription};
-use phi_common::GameState;
 use std::sync::Mutex;
 use tokio::sync::broadcast;
 

@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use uuid::Uuid;
 
 mod gql;
+mod poker;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {

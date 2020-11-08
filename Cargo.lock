@@ -1711,15 +1711,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "phi-common"
-version = "0.1.0"
-dependencies = [
- "async-graphql",
- "serde",
- "uuid",
-]
-
-[[package]]
 name = "phi-server"
 version = "0.1.0"
 dependencies = [
@@ -1731,7 +1722,6 @@ dependencies = [
  "dotenv",
  "env_logger",
  "log",
- "phi-common",
  "serde",
  "serde_json",
  "tokio 0.3.2",

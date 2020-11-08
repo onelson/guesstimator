@@ -44,30 +44,3 @@ pub struct GameState {
     /// players.
     pub is_calling: bool,
 }
-
-/// Messages the server will receive from connected clients.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ClientCmd {
-    SetPlayerName(String),
-    SetPlayerCard(Option<usize>),
-    RemovePlayer,
-    /// Clients send their key (if they have one) and the server validates it.
-    /// If the key is valid, the server will respond with
-    /// `ServerPush::IsAdminUser`.
-    AdminChallenge(AdminKey),
-    Call,
-    Resume,
-    Reset,
-}
-
-/// Used to push messages to connected websocket clients.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type")]
-pub enum ServerPush {
-    /// Sent back to a client as soon as the connection has been established.
-    PlayerRegistered { player_id: PlayerId },
-    /// Broadcast a new game state.
-    StateChange { new_state: GameState },
-    /// Confirm that a client knows the correct admin key.
-    IsAdminUser,
-}

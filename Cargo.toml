@@ -1,5 +1,4 @@
 [workspace]
 members = [
-    "phi-common",
     "phi-server",
 ]
