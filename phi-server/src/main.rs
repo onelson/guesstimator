@@ -1,3 +1,4 @@
+use crate::poker::DeckType;
 use actix_web::middleware::Logger;
 use actix_web::{guard, web, App, HttpServer};
 use async_graphql::Schema;
@@ -17,6 +18,18 @@ async fn main() -> std::io::Result<()> {
         .ok()
         .map(Into::into)
         .unwrap_or_else(|| PathBuf::from("."));
+
+    let deck_type = std::env::var("PHI_DECK_TYPE")
+        .map_or_else(
+            |_| Ok(DeckType::Fibonacci),
+            |s| match s.as_str() {
+                "fib" | "" => Ok(DeckType::Fibonacci),
+                "days" => Ok(DeckType::Days),
+                _ => Err(format!("Invalid deck type: `{}`. Use `fib` or `days`.", s)),
+            },
+        )
+        .expect("PHI_DECK_TYPE");
+
     println!("\nUsing Static Dir: {:?}\n", &static_dir);
     println!("\nAdmin Key: {}\n", &admin_key);
 
@@ -25,7 +38,7 @@ async fn main() -> std::io::Result<()> {
         gql::model::Mutation,
         gql::model::Subscription,
     )
-    .data(gql::PlaySession::new(admin_key))
+    .data(poker::PlaySession::new(admin_key, deck_type))
     .finish();
 
     HttpServer::new(move || {

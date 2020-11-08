@@ -7,6 +7,8 @@ use async_graphql_actix_web::{Request, Response, WSSubscription};
 use std::sync::Mutex;
 use tokio::sync::broadcast;
 
+pub mod model;
+
 pub async fn index(schema: web::Data<model::PokerSchema>, req: Request) -> Response {
     schema.execute(req.into_inner()).await.into()
 }
@@ -30,31 +32,4 @@ pub async fn index_playground() -> Result<HttpResponse> {
         .body(playground_source(
             GraphQLPlaygroundConfig::new("/gql").subscription_endpoint("/gql"),
         )))
-}
-
-pub mod model;
-
-pub struct PlaySession {
-    admin_key: AdminKey,
-    game_state: Mutex<GameState>,
-    /// When the game state changes, this is used to notify subscribers.
-    game_state_notifier: broadcast::Sender<()>,
-}
-
-impl PlaySession {
-    pub fn new(admin_key: AdminKey) -> PlaySession {
-        let (tx, _rx) = broadcast::channel(100);
-        PlaySession {
-            admin_key,
-            game_state: Default::default(),
-            game_state_notifier: tx,
-        }
-    }
-
-    /// Pushes the current `GameState` to all active subscriptions.
-    fn notify_subscribers(&self) {
-        if let Err(err) = self.game_state_notifier.send(()) {
-            log::warn!("{}", err);
-        }
-    }
 }
