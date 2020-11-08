@@ -30,8 +30,8 @@
     "start": "run-p start:codegen start:css start:js",
     "fmt": "prettier --write './**/*.{html,css,js,jsx,ts,tsx,md,json}'",
     "gql:get-schema": "apollo client:download-schema schema.graphql",
-    "build:codegen": "apollo client:codegen --target typescript",
-    "start:codegen": "npm run build:codegen -- --watch"
+    "build:codegen": "apollo client:codegen -c apollo.config.offline.js --target typescript",
+    "start:codegen": "apollo client:codegen --watch --target typescript"
   },
   "eslintConfig": {
     "extends": [
