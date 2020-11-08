@@ -1,5 +1,4 @@
-use crate::gql::model::AdminKey;
-use crate::poker::GameState;
+use crate::poker::{AdminKey, GameState};
 use actix_web::{web, HttpRequest, HttpResponse, Result};
 use actix_web_actors::ws;
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};

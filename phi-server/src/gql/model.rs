@@ -2,20 +2,16 @@
 //! design used for the websocket version, so I'm redefining a bunch of the
 //! types used for the game here.
 
+use crate::poker::{AdminKey, PlayerId, CARDS};
 use async_graphql::*;
+use std::time::{Duration, SystemTime};
 use tokio::stream::{Stream, StreamExt};
-use uuid::Uuid;
+
+/// Players that fail to send a heartbeat within this time will be dropped from
+/// the game.
+const MAX_PLAYER_IDLE: Duration = Duration::from_secs(10);
 
 pub type PokerSchema = Schema<Query, Mutation, Subscription>;
-
-use crate::poker::CARDS;
-
-/// Stable handle for identifying players, regardless of what the display name
-/// is.
-pub type PlayerId = Uuid;
-/// Certain features are only enabled for players who know the secret key for
-/// the session.
-pub type AdminKey = Uuid;
 
 #[derive(Clone, Debug, PartialEq, SimpleObject)]
 struct Player {
@@ -88,6 +84,33 @@ impl Mutation {
     async fn admin_challenge(&self, ctx: &Context<'_>, key: AdminKey) -> Result<bool> {
         let session = ctx.data_unchecked::<crate::gql::PlaySession>();
         Ok(session.admin_key == key)
+    }
+
+    async fn heartbeat(&self, ctx: &Context<'_>, player_id: PlayerId) -> Result<bool> {
+        let session = ctx.data_unchecked::<crate::gql::PlaySession>();
+        {
+            let mut state = session.game_state.lock().unwrap();
+            let prev = state.clone();
+            if let Some(player) = state.players.get_mut(&player_id) {
+                player.last_heartbeat = SystemTime::now();
+            } else {
+                log::warn!(
+                    "Tried to update heartbeat for unknown player: `{}`",
+                    player_id
+                );
+            }
+            state
+                .players
+                .retain(|_k, v| v.last_heartbeat.elapsed().unwrap() < MAX_PLAYER_IDLE);
+            if *state != prev {
+                log::warn!(
+                    "removing idle players: {}",
+                    prev.players.len() - state.players.len()
+                );
+                session.notify_subscribers();
+            }
+        }
+        Ok(true)
     }
 
     async fn set_player_name(
