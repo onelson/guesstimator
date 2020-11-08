@@ -1,9 +1,10 @@
 FROM rust:1.47-buster as builder
 # Stage 1
 
+RUN curl -sL https://deb.nodesource.com/setup_lts.x | bash -
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
-    nodejs npm \
+    nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 
