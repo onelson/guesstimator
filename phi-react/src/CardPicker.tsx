@@ -42,7 +42,9 @@ export function CardPicker(props: Props) {
             <li
               key={name}
               className={classes.join(' ')}
-              onClick={() => onSelect(idx)}
+              onClick={() => {
+                !isCalling && onSelect(idx);
+              }}
             >
               <div className="value">{name}</div>
             </li>
