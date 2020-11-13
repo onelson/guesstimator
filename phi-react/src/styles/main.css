@@ -11,6 +11,12 @@
 }
 
 @layer base {
+  html {
+    /* The confetti will for sure kick in the scrollbar, so enable it always
+       just to keep the page layout from popping around.
+     */
+    overflow-y: scroll;
+  }
   body {
     @apply text-brand-dark-blue;
     background-color: theme('colors.brand.pale-blue');
