@@ -146,6 +146,11 @@ impl Mutation {
         let session = ctx.data_unchecked::<crate::poker::PlaySession>();
         let outcome = {
             let mut game_state = session.game_state.lock().unwrap();
+            if game_state.is_calling {
+                return Err(Error::new(
+                    "Game is currently calling. Selections are locked.",
+                ));
+            }
             if let Some(player) = game_state.players.get_mut(&player_id) {
                 match player.selected_card.take() {
                     prev if prev == card => (),
