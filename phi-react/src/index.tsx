@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import App from './App';
+import './index.css';
 import reportWebVitals from './reportWebVitals';
 import {
   ApolloProvider,
@@ -9,10 +10,6 @@ import {
   HttpLink,
   split,
 } from '@apollo/client';
-// These styles are generated via postcss. If missing, you probably need to
-// `npm run build:css` (which should happen automatically during both
-// `npm run start` and `npm run build`.
-import './styles/_main.dist.css';
 import { WebSocketLink } from '@apollo/client/link/ws';
 import { getMainDefinition } from '@apollo/client/utilities';
 

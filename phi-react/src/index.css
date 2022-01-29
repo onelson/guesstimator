@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-brand-pale-blue: #d6e2ee;
+  --color-brand-blue: #568faa;
+  --color-brand-dark-blue: #18293d;
+  --color-brand-red: #8a0516;
+  --color-brand-bright-red: #c82521;
+}
+
+@layer base {
+  html {
+    /* The confetti will for sure kick in the scrollbar, so enable it always
+           just to keep the page layout from popping around.
+         */
+    overflow-y: scroll;
+  }
+  body {
+    @apply text-brand-dark-blue;
+    background-color: theme('colors.brand.pale-blue');
+  }
+}
+
+@layer components {
+  .card {
+    @apply select-none
+        border-2
+        border-brand-blue
+        rounded
+        h-20
+        w-16
+        py-6
+        text-center
+        align-middle
+        text-lg
+        shadow-lg;
+  }
+
+  .card.active {
+    @apply bg-brand-blue border-brand-dark-blue text-white;
+  }
+
+  .card.undecided {
+    @apply opacity-50;
+  }
+
+  .player-cards:not(.calling) .card .value {
+    @apply invisible;
+  }
+
+  .player-cards .card:not(.undecided) {
+    @apply bg-brand-blue border-brand-dark-blue text-white;
+  }
+
+  .card-picker .card {
+    @apply transition duration-75;
+  }
+
+  .card-picker:not(.calling) .card:hover {
+    @apply duration-200
+        shadow-2xl
+        transform
+        scale-125
+        bg-brand-blue
+        border-brand-dark-blue
+        text-white
+        cursor-pointer;
+  }
+
+  .card-picker.calling .card {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  .btn-red {
+    @apply bg-brand-red text-white font-bold py-2 px-4 rounded;
+  }
+
+  .btn-red:hover {
+    @apply bg-brand-bright-red;
+  }
+}
