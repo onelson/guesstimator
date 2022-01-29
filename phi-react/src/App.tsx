@@ -146,7 +146,7 @@ function App() {
         // If the heartbeat fails, it could be because the server is down.
         // If the server is down, that probably means the clientId is stale, so
         // reload the page to try and get a new one.
-        window.location.reload(true);
+        window.location.reload();
       });
     }, 3_000);
 
