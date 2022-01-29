@@ -88,17 +88,15 @@ function App() {
   const qs = new URLSearchParams(window.location.search);
   const adminKey = qs.get('key');
 
-  const [checkAdminKey, { data: adminChallengeData }] = useMutation<
-    CheckAdminKey
-  >(CHECK_ADMIN_KEY);
+  const [checkAdminKey, { data: adminChallengeData }] =
+    useMutation<CheckAdminKey>(CHECK_ADMIN_KEY);
 
   const isAdmin = !!adminChallengeData?.adminChallenge;
   const { data: cardData } = useQuery<GetCards>(GET_CARDS);
   const { data: gameStateData } = useSubscription<GetGameState>(GET_GAME_STATE);
 
-  const [getClientId, { data: registerData }] = useMutation<GetClientId>(
-    REGISTER
-  );
+  const [getClientId, { data: registerData }] =
+    useMutation<GetClientId>(REGISTER);
   const [setPlayerCard] = useMutation<SetPlayerCard>(SET_PLAYER_CARD);
   const [setPlayerName] = useMutation<SetPlayerName>(SET_PLAYER_NAME);
   const [removePlayer] = useMutation<RemovePlayer>(REMOVE_PLAYER);
@@ -148,7 +146,7 @@ function App() {
         // If the heartbeat fails, it could be because the server is down.
         // If the server is down, that probably means the clientId is stale, so
         // reload the page to try and get a new one.
-        window.location.reload(true);
+        window.location.reload();
       });
     }, 3_000);
 

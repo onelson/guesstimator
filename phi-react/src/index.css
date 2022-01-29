@@ -1,6 +1,6 @@
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --color-brand-pale-blue: #d6e2ee;
@@ -13,8 +13,8 @@
 @layer base {
   html {
     /* The confetti will for sure kick in the scrollbar, so enable it always
-       just to keep the page layout from popping around.
-     */
+           just to keep the page layout from popping around.
+         */
     overflow-y: scroll;
   }
   body {
@@ -26,16 +26,16 @@
 @layer components {
   .card {
     @apply select-none
-      border-2
-      border-brand-blue
-      rounded
-      h-20
-      w-16
-      py-6
-      text-center
-      align-middle
-      text-lg
-      shadow-lg;
+        border-2
+        border-brand-blue
+        rounded
+        h-20
+        w-16
+        py-6
+        text-center
+        align-middle
+        text-lg
+        shadow-lg;
   }
 
   .card.active {
@@ -60,13 +60,13 @@
 
   .card-picker:not(.calling) .card:hover {
     @apply duration-200
-      shadow-2xl
-      transform
-      scale-125
-      bg-brand-blue
-      border-brand-dark-blue
-      text-white
-      cursor-pointer;
+        shadow-2xl
+        transform
+        scale-125
+        bg-brand-blue
+        border-brand-dark-blue
+        text-white
+        cursor-pointer;
   }
 
   .card-picker.calling .card {
