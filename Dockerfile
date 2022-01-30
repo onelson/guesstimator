@@ -1,5 +1,5 @@
 FROM rust:1.58-slim-bullseye as server-builder
-ADD ./ /code
+ADD ./phi-server /code
 WORKDIR /code/
 RUN cargo build --release
 

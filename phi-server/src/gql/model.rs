@@ -5,7 +5,7 @@
 use crate::poker::{AdminKey, PlayerId};
 use async_graphql::*;
 use std::time::{Duration, SystemTime};
-use tokio::stream::{Stream, StreamExt};
+use tokio_stream::{self as stream, wrappers::BroadcastStream, Stream, StreamExt};
 
 /// Players that fail to send a heartbeat within this time will be dropped from
 /// the game.
@@ -216,12 +216,12 @@ pub struct Subscription;
 impl Subscription {
     async fn game_state(&self, ctx: &Context<'_>) -> impl Stream<Item = GameState> {
         let session = ctx.data_unchecked::<crate::poker::PlaySession>();
-        let rx = session.game_state_notifier.subscribe();
+        let rx = BroadcastStream::new(session.game_state_notifier.subscribe());
         // Who knows when the next game state change will happen, so seed the
         // stream with one message to kick things off.
-        let init = tokio::stream::iter(vec![GameState]);
+        let init = stream::iter(vec![GameState]);
         // Additional game states will flow over the socket with each time a
         // mutation happens (ie, when `notify_subscribers()` is called).
-        init.merge(rx.into_stream().map(|_| GameState))
+        init.merge(rx.map(|_| GameState))
     }
 }
