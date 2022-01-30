@@ -1,15 +1,18 @@
+use crate::gql::model::PokerSchema;
 use crate::poker::DeckType;
-use actix_web::middleware::Logger;
-use actix_web::{guard, web, App, HttpServer};
+use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
 use async_graphql::Schema;
+use async_graphql_warp::{graphql_subscription, GraphQLResponse};
+use std::convert::Infallible;
 use std::path::PathBuf;
 use uuid::Uuid;
+use warp::{http::Response as HttpResponse, Filter};
 
 mod gql;
 mod poker;
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
+#[tokio::main]
+async fn main() {
     dotenv::dotenv().ok();
     env_logger::init();
 
@@ -41,26 +44,27 @@ async fn main() -> std::io::Result<()> {
     .data(poker::PlaySession::new(admin_key, deck_type))
     .finish();
 
-    HttpServer::new(move || {
-        let static_dir = static_dir.clone();
-        App::new()
-            .wrap(Logger::default())
-            .data(schema.clone())
-            .service(web::resource("/gql").guard(guard::Post()).to(gql::index))
-            .service(
-                web::resource("/gql")
-                    .guard(guard::Get())
-                    .guard(guard::Header("upgrade", "websocket"))
-                    .to(gql::index_ws),
-            )
-            .service(
-                web::resource("/gql-playground")
-                    .guard(guard::Get())
-                    .to(gql::index_playground),
-            )
-            .service(actix_files::Files::new("/", static_dir).index_file("index.html"))
-    })
-    .bind("0.0.0.0:7878")?
-    .run()
-    .await
+    let graphql_post = async_graphql_warp::graphql(schema.clone()).and_then(
+        |(schema, request): (PokerSchema, async_graphql::Request)| async move {
+            Ok::<_, Infallible>(GraphQLResponse::from(schema.execute(request).await))
+        },
+    );
+
+    let graphql_playground = warp::path::end().and(warp::get()).map(|| {
+        HttpResponse::builder()
+            .header("content-type", "text/html")
+            .body(playground_source(
+                GraphQLPlaygroundConfig::new("/gql-playground").subscription_endpoint("/gql"),
+            ))
+    });
+
+    let log = warp::log("phi_server");
+
+    let routes = warp::path("gql")
+        .and(graphql_subscription(schema).or(graphql_post))
+        .or(warp::path("gql-playground").and(graphql_playground))
+        .or(warp::fs::dir(static_dir));
+    warp::serve(routes.with(log))
+        .run(([0, 0, 0, 0], 7878))
+        .await;
 }
