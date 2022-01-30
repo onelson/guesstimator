@@ -63,6 +63,7 @@ async fn main() {
     let routes = warp::path("gql")
         .and(graphql_subscription(schema).or(graphql_post))
         .or(warp::path("gql-playground").and(graphql_playground))
+        // FIXME: look at baking the assets into the binary.
         .or(warp::fs::dir(static_dir));
     warp::serve(routes.with(log))
         .run(([0, 0, 0, 0], 7878))

@@ -10,6 +10,7 @@ import { NameSetter } from './NameSetter';
 import { SetPlayerName } from './__generated__/SetPlayerName';
 import { CheckAdminKey } from './__generated__/CheckAdminKey';
 import { RemovePlayer } from './__generated__/RemovePlayer';
+import { SendHeartbeat } from './__generated__/SendHeartbeat';
 
 const REGISTER = gql`
   mutation GetClientId {
@@ -85,6 +86,14 @@ const RESET = gql`
 `;
 
 function App() {
+  // FIXME: look at adding a separate page to ask for a player name.
+  //  Should work as a "landing page", and leverage a cookie.
+  //  Skip if the player name is already set.
+  //  Add a way to logout too.
+  //  Doesn't require a router, tbh. Just show/hide components.
+
+  // FIXME: look at loading/error states for Queries instead
+
   const qs = new URLSearchParams(window.location.search);
   const adminKey = qs.get('key');
 
@@ -100,7 +109,7 @@ function App() {
   const [setPlayerCard] = useMutation<SetPlayerCard>(SET_PLAYER_CARD);
   const [setPlayerName] = useMutation<SetPlayerName>(SET_PLAYER_NAME);
   const [removePlayer] = useMutation<RemovePlayer>(REMOVE_PLAYER);
-  const [sendHeartbeat] = useMutation(SEND_HEARTBEAT);
+  const [sendHeartbeat] = useMutation<SendHeartbeat>(SEND_HEARTBEAT);
 
   const [call] = useMutation(CALL);
   const [resume] = useMutation(RESUME);

@@ -212,6 +212,10 @@ impl Mutation {
 
 pub struct Subscription;
 
+// FIXME: Seems like we could update the subscription to yield a union of
+//  players (individually) and separate messages for game state events?
+//  It might not be worth it since the overall size is going to be small...
+
 #[Subscription]
 impl Subscription {
     async fn game_state(&self, ctx: &Context<'_>) -> impl Stream<Item = GameState> {
