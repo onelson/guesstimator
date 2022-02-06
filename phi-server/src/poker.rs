@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::Mutex;
 use std::time::SystemTime;
 use tokio::sync::broadcast;
@@ -11,9 +12,22 @@ pub const FIB_DECK: [&str; 12] = [
 ];
 pub const DAYS_DECK: [&str; 9] = ["0.5", "1", "1.5", "2", "3", "5", "∞", "?", "☕"];
 
+#[derive(Debug)]
 pub enum DeckType {
     Fibonacci,
     Days,
+}
+
+impl FromStr for DeckType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "fib" | "" => Ok(DeckType::Fibonacci),
+            "days" => Ok(DeckType::Days),
+            _ => Err(format!("Invalid deck type: `{}`. Use `fib` or `days`.", s)),
+        }
+    }
 }
 
 /// Stable handle for identifying players, regardless of what the display name
@@ -21,7 +35,7 @@ pub enum DeckType {
 pub type PlayerId = Uuid;
 /// Certain features are only enabled for players who know the secret key for
 /// the session.
-pub type AdminKey = Uuid;
+pub type AdminKey = String;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct Player {
