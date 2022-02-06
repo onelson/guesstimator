@@ -82,7 +82,7 @@ async fn main() {
         Response::builder()
             .header("content-type", "text/html")
             .body(playground_source(
-                GraphQLPlaygroundConfig::new("/gql-playground").subscription_endpoint("/gql"),
+                GraphQLPlaygroundConfig::new("/gql").subscription_endpoint("/gql"),
             ))
     });
 
