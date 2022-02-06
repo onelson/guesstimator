@@ -4,9 +4,11 @@ use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
 use async_graphql::Schema;
 use async_graphql_warp::{graphql_subscription, GraphQLResponse};
 use std::convert::Infallible;
+use structopt::StructOpt;
 use uuid::Uuid;
 use warp::{http::Response, Filter};
 
+mod cli;
 mod gql;
 mod poker;
 
@@ -19,7 +21,7 @@ mod spa {
 
     static SPA_FILES: Dir = include_dir!("$PHI_STATIC_DIR");
     pub fn handler() -> impl Filter<Extract = impl Reply, Error = Infallible> + Clone {
-        println!("Using baked assets");
+        log::info!("Using baked assets");
         warp::path::tail().map(|tail: Tail| {
             let file = SPA_FILES
                 .get_file(tail.as_str())
@@ -44,7 +46,7 @@ mod spa {
             .map(Into::into)
             .unwrap_or_else(|| PathBuf::from("."));
 
-        println!("Using Static Dir: {:?}", &static_dir);
+        log::info!("Using Static Dir: {:?}", &static_dir);
 
         warp::fs::dir(static_dir)
     }
@@ -55,27 +57,19 @@ async fn main() {
     dotenv::dotenv().ok();
     env_logger::init();
 
-    let admin_key = Uuid::new_v4();
+    let opts: cli::Opt = cli::Opt::from_args();
 
-    let deck_type = std::env::var("PHI_DECK_TYPE")
-        .map_or_else(
-            |_| Ok(DeckType::Fibonacci),
-            |s| match s.as_str() {
-                "fib" | "" => Ok(DeckType::Fibonacci),
-                "days" => Ok(DeckType::Days),
-                _ => Err(format!("Invalid deck type: `{}`. Use `fib` or `days`.", s)),
-            },
-        )
-        .expect("PHI_DECK_TYPE");
+    let admin_key = opts.admin_key.unwrap_or_else(|| Uuid::new_v4().to_string());
 
-    println!("\nAdmin Key: {}\n", &admin_key);
+    log::info!("Admin Key: {}", &admin_key);
+    log::info!("Server listening on {}", opts.http_addr);
 
     let schema = Schema::build(
         gql::model::Query,
         gql::model::Mutation,
         gql::model::Subscription,
     )
-    .data(poker::PlaySession::new(admin_key, deck_type))
+    .data(poker::PlaySession::new(admin_key, opts.deck_type))
     .finish();
 
     let graphql_post = async_graphql_warp::graphql(schema.clone()).and_then(
@@ -97,9 +91,7 @@ async fn main() {
     let routes = warp::path("gql")
         .and(graphql_subscription(schema).or(graphql_post))
         .or(warp::path("gql-playground").and(graphql_playground))
-        // FIXME: look at baking the assets into the binary.
         .or(spa::handler());
-    warp::serve(routes.with(log))
-        .run(([0, 0, 0, 0], 7878))
-        .await;
+
+    warp::serve(routes.with(log)).run(opts.http_addr).await
 }
