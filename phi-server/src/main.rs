@@ -1,12 +1,9 @@
-use crate::gql::model::PokerSchema;
 use crate::poker::DeckType;
-use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
+use actix_web::middleware::Logger;
+use actix_web::{web, App, HttpServer};
 use async_graphql::Schema;
-use async_graphql_warp::{graphql_subscription, GraphQLResponse};
-use std::convert::Infallible;
 use structopt::StructOpt;
 use uuid::Uuid;
-use warp::{http::Response, Filter};
 
 mod cli;
 mod gql;
@@ -14,46 +11,74 @@ mod poker;
 
 #[cfg(feature = "baked")]
 mod spa {
+    use actix_web::http::{header, StatusCode};
+    use actix_web::{guard, web, HttpResponse, Responder};
     use include_dir::{include_dir, Dir};
-    use std::convert::Infallible;
-    use warp::path::Tail;
-    use warp::{http::Response, Filter, Reply};
+    use std::path::PathBuf;
 
     static SPA_FILES: Dir = include_dir!("$PHI_STATIC_DIR");
-    pub fn handler() -> impl Filter<Extract = impl Reply, Error = Infallible> + Clone {
-        log::info!("Using baked assets");
-        warp::path::tail().map(|tail: Tail| {
-            let file = SPA_FILES
-                .get_file(tail.as_str())
-                .or_else(|| SPA_FILES.get_file("index.html"))
-                .expect("get baked file");
-            let mime = mime_guess::from_path(file.path()).first_or_octet_stream();
-            Response::builder()
-                .header("content-type", mime.as_ref())
-                .body(file.contents())
-        })
+
+    async fn handler(tail: web::Path<PathBuf>) -> impl Responder {
+        let file = SPA_FILES
+            .get_file(tail.into_inner())
+            .or_else(|| SPA_FILES.get_file("index.html"))
+            .expect("get baked file");
+
+        let mime = file
+            .path()
+            .extension()
+            .map(|s| s.to_ascii_lowercase())
+            .and_then(|s| s.to_str().map(|x| x.to_string()))
+            .map(|ext| actix_files::file_extension_to_mime(&ext))
+            .unwrap_or(mime::APPLICATION_OCTET_STREAM);
+
+        HttpResponse::build(StatusCode::OK)
+            .insert_header((header::CONTENT_TYPE, mime))
+            .body(file.contents())
+    }
+
+    pub fn configure(cfg: &mut web::ServiceConfig) {
+        log::info!("Configuring baked asset handler");
+        cfg.service(web::resource("/{tail:.*}").guard(guard::Get()).to(handler));
     }
 }
 
 #[cfg(not(feature = "baked"))]
 mod spa {
+    use actix_files::NamedFile;
+    use actix_web::dev::{fn_service, ServiceRequest, ServiceResponse};
+    use actix_web::web;
     use std::path::PathBuf;
-    use warp::{Filter, Rejection, Reply};
 
-    pub fn handler() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+    pub fn configure(cfg: &mut web::ServiceConfig) {
         let static_dir: PathBuf = std::env::var("PHI_STATIC_DIR")
             .ok()
             .map(Into::into)
             .unwrap_or_else(|| PathBuf::from("."));
 
-        log::info!("Using Static Dir: {:?}", &static_dir);
+        log::info!(
+            "Configuring static asset handler using root={:?}",
+            &static_dir
+        );
 
-        warp::fs::dir(static_dir)
+        cfg.service(
+            actix_files::Files::new("/", &static_dir)
+                .index_file("index.html")
+                .default_handler(fn_service(move |req: ServiceRequest| {
+                    let static_dir = static_dir.clone();
+                    async move {
+                        let (req, _) = req.into_parts();
+                        let file = NamedFile::open_async(static_dir.join("index.html")).await?;
+                        let res = file.into_response(&req);
+                        Ok(ServiceResponse::new(req, res))
+                    }
+                })),
+        );
     }
 }
 
-#[tokio::main]
-async fn main() {
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
     env_logger::init();
 
@@ -72,26 +97,16 @@ async fn main() {
     .data(poker::PlaySession::new(admin_key, opts.deck_type))
     .finish();
 
-    let graphql_post = async_graphql_warp::graphql(schema.clone()).and_then(
-        |(schema, request): (PokerSchema, async_graphql::Request)| async move {
-            Ok::<_, Infallible>(GraphQLResponse::from(schema.execute(request).await))
-        },
-    );
+    let schema_data = web::Data::new(schema);
 
-    let graphql_playground = warp::path::end().and(warp::get()).map(|| {
-        Response::builder()
-            .header("content-type", "text/html")
-            .body(playground_source(
-                GraphQLPlaygroundConfig::new("/gql").subscription_endpoint("/gql"),
-            ))
-    });
-
-    let log = warp::log("phi_server");
-
-    let routes = warp::path("gql")
-        .and(graphql_subscription(schema).or(graphql_post))
-        .or(warp::path("gql-playground").and(graphql_playground))
-        .or(spa::handler());
-
-    warp::serve(routes.with(log)).run(opts.http_addr).await
+    HttpServer::new(move || {
+        App::new()
+            .wrap(Logger::default())
+            .app_data(schema_data.clone())
+            .configure(gql::configure)
+            .configure(spa::configure)
+    })
+    .bind(opts.http_addr)?
+    .run()
+    .await
 }
