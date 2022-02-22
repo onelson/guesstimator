@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect } from 'react';
 import { PlayerCards } from './PlayerCards';
 import { CardPicker } from './CardPicker';
-import { gql, useMutation, useQuery, useSubscription } from '@apollo/client';
+import { gql, useMutation, useQuery } from '@apollo/client';
 import { GetCards } from './__generated__/GetCards';
 import { GetGameState } from './__generated__/GetGameState';
 import { GetClientId } from './__generated__/GetClientId';
@@ -32,7 +32,10 @@ const SEND_HEARTBEAT = gql`
 
 const SET_PLAYER_NAME = gql`
   mutation SetPlayerName($playerId: UUID!, $name: String!) {
-    setPlayerName(playerId: $playerId, name: $name)
+    setPlayerName(playerId: $playerId, name: $name) {
+      id
+      name
+    }
   }
 `;
 
@@ -43,13 +46,14 @@ const GET_CARDS = gql`
 `;
 
 const GET_GAME_STATE = gql`
-  subscription GetGameState {
+  query GetGameState {
     gameState {
       isCalling
       players {
         id
         selectedCard
         name
+        idle
       }
     }
   }
@@ -57,12 +61,15 @@ const GET_GAME_STATE = gql`
 
 const SET_PLAYER_CARD = gql`
   mutation SetPlayerCard($playerId: UUID!, $card: Int!) {
-    setPlayerCard(card: $card, playerId: $playerId)
+    setPlayerCard(card: $card, playerId: $playerId) {
+      id
+      selectedCard
+    }
   }
 `;
 
 const CHECK_ADMIN_KEY = gql`
-  mutation CheckAdminKey($key: UUID!) {
+  mutation CheckAdminKey($key: String!) {
     adminChallenge(key: $key)
   }
 `;
@@ -102,7 +109,9 @@ function App() {
 
   const isAdmin = !!adminChallengeData?.adminChallenge;
   const { data: cardData } = useQuery<GetCards>(GET_CARDS);
-  const { data: gameStateData } = useSubscription<GetGameState>(GET_GAME_STATE);
+  const { data: gameStateData } = useQuery<GetGameState>(GET_GAME_STATE, {
+    pollInterval: 750,
+  });
 
   const [getClientId, { data: registerData }] =
     useMutation<GetClientId>(REGISTER);
@@ -157,7 +166,7 @@ function App() {
         // reload the page to try and get a new one.
         window.location.reload();
       });
-    }, 3_000);
+    }, 8_000);
 
     return () => {
       window.clearTimeout(timer);
@@ -196,6 +205,7 @@ function App() {
     <div className="container mx-auto flex flex-col space-y-4">
       <PlayerCards gameStateData={gameStateData} cards={cards} />
       <NameSetter
+        initialValue={player.name}
         onSubmit={(name) =>
           setPlayerName({
             variables: {

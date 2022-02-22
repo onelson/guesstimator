@@ -32,11 +32,14 @@ export function PlayerCards(props: Props) {
   }
 
   // Celebrate when everybody picks the same card.
+  const activePlayers = players.filter((p) => !p.idle);
   const consensus =
     isCalling &&
-    !!players.length &&
-    players[0].selectedCard !== null &&
-    players.every((p) => p.selectedCard === players[0].selectedCard);
+    !!activePlayers.length &&
+    activePlayers[0].selectedCard !== null &&
+    activePlayers.every(
+      (p) => p.selectedCard === activePlayers[0].selectedCard
+    );
 
   return (
     <div className={classes.join(' ')}>
@@ -53,7 +56,13 @@ export function PlayerCards(props: Props) {
                 {player.selectedCard !== null ? cards[player.selectedCard] : ''}
               </div>
             </div>
-            <div className={'name text-center'}>{player.name}</div>
+            <div
+              className={`name text-center ${
+                player.idle ? 'text-gray-400' : ''
+              }`}
+            >
+              {player.name}
+            </div>
           </div>
         );
       })}

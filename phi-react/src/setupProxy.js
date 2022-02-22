@@ -5,7 +5,6 @@ module.exports = function (app) {
     '/gql',
     createProxyMiddleware({
       target: 'http://localhost:7878',
-      ws: true,
     })
   );
 };

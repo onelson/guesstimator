@@ -39,6 +39,7 @@ pub type AdminKey = String;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct Player {
+    pub id: PlayerId,
     /// The name displayed with the cards.
     pub name: String,
     /// Index into the card data, `CARDS`.
@@ -47,8 +48,9 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(name: String) -> Player {
+    pub fn new(name: String, id: PlayerId) -> Player {
         Player {
+            id,
             name,
             selected_card: None,
             last_heartbeat: SystemTime::now(),

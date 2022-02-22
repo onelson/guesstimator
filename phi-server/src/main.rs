@@ -1,7 +1,10 @@
 use crate::poker::DeckType;
+use actix_session::CookieSession;
+use actix_web::cookie::SameSite;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
 use async_graphql::Schema;
+use std::sync::Arc;
 use structopt::StructOpt;
 use uuid::Uuid;
 
@@ -9,8 +12,14 @@ mod cli;
 mod gql;
 mod poker;
 
+// FIXME: need to rewrite BOTH spa impls so we can call `get_session_identity`
+//  Probably refactor to follow the handler flow in `baked` and change how we
+//  get raw bytes for a given filename depending on the feature.
+
 #[cfg(feature = "baked")]
 mod spa {
+    use crate::gql::get_session_identity;
+    use actix_session::Session;
     use actix_web::http::{header, StatusCode};
     use actix_web::{guard, web, HttpResponse, Responder};
     use include_dir::{include_dir, Dir};
@@ -18,7 +27,9 @@ mod spa {
 
     static SPA_FILES: Dir = include_dir!("$PHI_STATIC_DIR");
 
-    async fn handler(tail: web::Path<PathBuf>) -> impl Responder {
+    async fn handler(sess: Session, tail: web::Path<PathBuf>) -> impl Responder {
+        // Try to establish player identity if not already set
+        let _ = get_session_identity(&sess);
         let file = SPA_FILES
             .get_file(tail.into_inner())
             .or_else(|| SPA_FILES.get_file("index.html"))
@@ -89,19 +100,42 @@ async fn main() -> std::io::Result<()> {
     log::info!("Admin Key: {}", &admin_key);
     log::info!("Server listening on {}", opts.http_addr);
 
+    let play_session = Arc::new(poker::PlaySession::new(admin_key, opts.deck_type));
+    let poker_data = web::Data::new(play_session.clone());
+
     let schema = Schema::build(
         gql::model::Query,
         gql::model::Mutation,
         gql::model::Subscription,
     )
-    .data(poker::PlaySession::new(admin_key, opts.deck_type))
+    .data(play_session.clone())
     .finish();
 
     let schema_data = web::Data::new(schema);
 
+    // FIXME: configure via CLI/env
+    let mut key = [0; 32];
+    key[0] = 0;
+    key[1] = 1;
+    key[2] = 1;
+    key[3] = 2;
+    key[4] = 3;
+    key[5] = 5;
+    key[6] = 8;
+    key[7] = 13;
+
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
+            .wrap(
+                CookieSession::signed(&key)
+                    .name("phi")
+                    .secure(false)
+                    .http_only(true)
+                    .same_site(SameSite::Lax)
+                    .path("/"),
+            )
+            .app_data(poker_data.clone())
             .app_data(schema_data.clone())
             .configure(gql::configure)
             .configure(spa::configure)

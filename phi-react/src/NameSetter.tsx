@@ -1,6 +1,7 @@
 import React, { SyntheticEvent } from 'react';
 
 type Props = {
+  initialValue: string;
   onSubmit: (name: string) => void;
 };
 
@@ -14,7 +15,7 @@ export function NameSetter(props: Props) {
   return (
     <form onSubmit={handleSubmit}>
       <label>Name:</label>
-      <input name="playerName" />
+      <input name="playerName" defaultValue={props.initialValue} />
     </form>
   );
 }
