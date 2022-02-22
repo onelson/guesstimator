@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 actix-files = "0.6.0-beta.16"
 actix-rt = "2.6.0"
+actix-session = "0.5.0-beta.8"
 actix-web = "4.0.0-rc.3"
 async-graphql = { version = "3.0.29", features = ["uuid"] }
 async-graphql-actix-web = "3.0.29"

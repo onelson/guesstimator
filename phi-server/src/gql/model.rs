@@ -2,8 +2,10 @@
 //! design used for the websocket version, so I'm redefining a bunch of the
 //! types used for the game here.
 
+use crate::gql::SessionIdentity;
 use crate::poker::{AdminKey, PlayerId};
 use async_graphql::*;
+use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use tokio_stream::{self as stream, wrappers::BroadcastStream, Stream, StreamExt};
 
@@ -37,13 +39,13 @@ struct GameState;
 #[Object]
 impl GameState {
     async fn is_calling(&self, ctx: &Context<'_>) -> bool {
-        let session = ctx.data_unchecked::<crate::poker::PlaySession>();
+        let session = ctx.data_unchecked::<Arc<crate::poker::PlaySession>>();
         let game_state = session.game_state.lock().unwrap();
         game_state.is_calling
     }
 
     async fn players(&self, ctx: &Context<'_>) -> Vec<Player> {
-        let session = ctx.data_unchecked::<crate::poker::PlaySession>();
+        let session = ctx.data_unchecked::<Arc<crate::poker::PlaySession>>();
         let game_state = session.game_state.lock().unwrap();
         game_state.players.iter().map(Into::into).collect()
     }
@@ -54,7 +56,7 @@ pub struct Query;
 #[Object]
 impl Query {
     async fn cards(&self, ctx: &Context<'_>) -> &[&str] {
-        let session = ctx.data_unchecked::<crate::poker::PlaySession>();
+        let session = ctx.data_unchecked::<Arc<crate::poker::PlaySession>>();
         session.deck
     }
 
@@ -68,27 +70,26 @@ pub struct Mutation;
 #[Object]
 impl Mutation {
     async fn register(&self, ctx: &Context<'_>) -> Result<PlayerId> {
-        let session = ctx.data_unchecked::<crate::poker::PlaySession>();
-        let player_id = PlayerId::new_v4();
+        let session = ctx.data_unchecked::<Arc<crate::poker::PlaySession>>();
+        let SessionIdentity { name, id } = ctx.data_unchecked::<SessionIdentity>().clone();
+        let player = crate::poker::Player::new(name.clone(), id.clone());
         {
             let mut game_state = session.game_state.lock().unwrap();
-            game_state
-                .players
-                .insert(player_id, crate::poker::Player::new(String::from("Guest")));
+            game_state.players.insert(player.id, player);
         }
         session.notify_subscribers();
-        Ok(player_id)
+        Ok(id)
     }
 
     /// Clients that want admin privileges send their key.
     /// The bool return is for if the keys match or not.
     async fn admin_challenge(&self, ctx: &Context<'_>, key: AdminKey) -> Result<bool> {
-        let session = ctx.data_unchecked::<crate::poker::PlaySession>();
+        let session = ctx.data_unchecked::<Arc<crate::poker::PlaySession>>();
         Ok(session.admin_key == key)
     }
 
     async fn heartbeat(&self, ctx: &Context<'_>, player_id: PlayerId) -> Result<bool> {
-        let session = ctx.data_unchecked::<crate::poker::PlaySession>();
+        let session = ctx.data_unchecked::<Arc<crate::poker::PlaySession>>();
         {
             let mut state = session.game_state.lock().unwrap();
             if let Some(player) = state.players.get_mut(&player_id) {
@@ -121,7 +122,7 @@ impl Mutation {
         player_id: PlayerId,
         name: String,
     ) -> Result<bool> {
-        let session = ctx.data_unchecked::<crate::poker::PlaySession>();
+        let session = ctx.data_unchecked::<Arc<crate::poker::PlaySession>>();
         let outcome = {
             let mut game_state = session.game_state.lock().unwrap();
             if let Some(player) = game_state.players.get_mut(&player_id) {
@@ -143,7 +144,7 @@ impl Mutation {
         card: Option<i32>,
     ) -> Result<bool> {
         let card = card.map(|n| n as usize);
-        let session = ctx.data_unchecked::<crate::poker::PlaySession>();
+        let session = ctx.data_unchecked::<Arc<crate::poker::PlaySession>>();
         let outcome = {
             let mut game_state = session.game_state.lock().unwrap();
             if game_state.is_calling {
@@ -167,7 +168,7 @@ impl Mutation {
     }
 
     async fn remove_player(&self, ctx: &Context<'_>, player_id: PlayerId) -> Result<bool> {
-        let session = ctx.data_unchecked::<crate::poker::PlaySession>();
+        let session = ctx.data_unchecked::<Arc<crate::poker::PlaySession>>();
         {
             let mut game_state = session.game_state.lock().unwrap();
             game_state.players.remove(&player_id);
@@ -177,7 +178,7 @@ impl Mutation {
     }
 
     async fn call(&self, ctx: &Context<'_>) -> Result<bool> {
-        let session = ctx.data_unchecked::<crate::poker::PlaySession>();
+        let session = ctx.data_unchecked::<Arc<crate::poker::PlaySession>>();
         {
             let mut game_state = session.game_state.lock().unwrap();
             game_state.is_calling = true;
@@ -187,7 +188,7 @@ impl Mutation {
     }
 
     async fn resume(&self, ctx: &Context<'_>) -> Result<bool> {
-        let session = ctx.data_unchecked::<crate::poker::PlaySession>();
+        let session = ctx.data_unchecked::<Arc<crate::poker::PlaySession>>();
         {
             let mut game_state = session.game_state.lock().unwrap();
             game_state.is_calling = false;
@@ -197,7 +198,7 @@ impl Mutation {
     }
 
     async fn reset(&self, ctx: &Context<'_>) -> Result<bool> {
-        let session = ctx.data_unchecked::<crate::poker::PlaySession>();
+        let session = ctx.data_unchecked::<Arc<crate::poker::PlaySession>>();
         {
             let mut game_state = session.game_state.lock().unwrap();
             for mut player in game_state.players.values_mut() {
@@ -219,7 +220,7 @@ pub struct Subscription;
 #[Subscription]
 impl Subscription {
     async fn game_state(&self, ctx: &Context<'_>) -> impl Stream<Item = GameState> {
-        let session = ctx.data_unchecked::<crate::poker::PlaySession>();
+        let session = ctx.data_unchecked::<Arc<crate::poker::PlaySession>>();
         let rx = BroadcastStream::new(session.game_state_notifier.subscribe());
         // Who knows when the next game state change will happen, so seed the
         // stream with one message to kick things off.

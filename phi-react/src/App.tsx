@@ -196,6 +196,7 @@ function App() {
     <div className="container mx-auto flex flex-col space-y-4">
       <PlayerCards gameStateData={gameStateData} cards={cards} />
       <NameSetter
+        initialValue={player.name}
         onSubmit={(name) =>
           setPlayerName({
             variables: {
