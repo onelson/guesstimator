@@ -44,10 +44,10 @@ type Mutation {
   Clients that want admin privileges send their key.
   The bool return is for if the keys match or not.
   """
-  adminChallenge(key: UUID!): Boolean!
+  adminChallenge(key: String!): Boolean!
   heartbeat(playerId: UUID!): Boolean!
-  setPlayerName(playerId: UUID!, name: String!): Boolean!
-  setPlayerCard(playerId: UUID!, card: Int): Boolean!
+  setPlayerName(playerId: UUID!, name: String!): Player
+  setPlayerCard(playerId: UUID!, card: Int): Player
   removePlayer(playerId: UUID!): Boolean!
   call: Boolean!
   resume: Boolean!
@@ -62,6 +62,7 @@ type Player {
 
   """Index into the card data, `CARDS`."""
   selectedCard: Int
+  idle: Boolean!
 }
 
 type Query {

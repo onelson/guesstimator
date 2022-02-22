@@ -8,40 +8,40 @@ import {
   ApolloClient,
   InMemoryCache,
   HttpLink,
-  split,
+  // split,
 } from '@apollo/client';
-import { WebSocketLink } from '@apollo/client/link/ws';
-import { getMainDefinition } from '@apollo/client/utilities';
+// import { WebSocketLink } from '@apollo/client/link/ws';
+// import { getMainDefinition } from '@apollo/client/utilities';
 
 function getClient() {
   const httpLink = new HttpLink({
     uri: '/gql',
   });
 
-  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  // const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 
-  const wsLink = new WebSocketLink({
-    uri: `${proto}//${window.location.host}/gql`,
-    options: {
-      reconnect: true,
-    },
-  });
+  // const wsLink = new WebSocketLink({
+  //   uri: `${proto}//${window.location.host}/gql`,
+  //   options: {
+  //     reconnect: true,
+  //   },
+  // });
 
-  const splitLink = split(
-    ({ query }) => {
-      const definition = getMainDefinition(query);
-      return (
-        definition.kind === 'OperationDefinition' &&
-        definition.operation === 'subscription'
-      );
-    },
-    wsLink,
-    httpLink
-  );
+  // const splitLink = split(
+  //   ({ query }) => {
+  //     const definition = getMainDefinition(query);
+  //     return (
+  //       definition.kind === 'OperationDefinition' &&
+  //       definition.operation === 'subscription'
+  //     );
+  //   },
+  //   wsLink,
+  //   httpLink
+  // );
 
   return new ApolloClient({
     cache: new InMemoryCache(),
-    link: splitLink,
+    link: httpLink,
   });
 }
 

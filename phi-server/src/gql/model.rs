@@ -9,9 +9,11 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use tokio_stream::{self as stream, wrappers::BroadcastStream, Stream, StreamExt};
 
+/// Players who fail to send a heartbeat within this time will be shown as being idle.
+const PLAYER_IDLE_THRESHOLD: Duration = Duration::from_secs(30);
 /// Players that fail to send a heartbeat within this time will be dropped from
 /// the game.
-const MAX_PLAYER_IDLE: Duration = Duration::from_secs(10);
+const PLAYER_IDLE_THRESHOLD_MAX: Duration = Duration::from_secs(60 * 60);
 
 pub type PokerSchema = Schema<Query, Mutation, Subscription>;
 
@@ -22,6 +24,7 @@ struct Player {
     pub name: String,
     /// Index into the card data, `CARDS`.
     pub selected_card: Option<i32>,
+    pub idle: bool,
 }
 
 impl From<(&PlayerId, &crate::poker::Player)> for Player {
@@ -30,6 +33,18 @@ impl From<(&PlayerId, &crate::poker::Player)> for Player {
             id: *id,
             name: others.name.clone(),
             selected_card: others.selected_card.map(|n| n as i32),
+            idle: others.last_heartbeat.elapsed().unwrap() > PLAYER_IDLE_THRESHOLD,
+        }
+    }
+}
+
+impl From<crate::poker::Player> for Player {
+    fn from(other: crate::poker::Player) -> Self {
+        Player {
+            id: other.id,
+            name: other.name,
+            selected_card: other.selected_card.map(|n| n as i32),
+            idle: other.last_heartbeat.elapsed().unwrap() > PLAYER_IDLE_THRESHOLD,
         }
     }
 }
@@ -104,7 +119,7 @@ impl Mutation {
 
             state
                 .players
-                .retain(|_k, v| v.last_heartbeat.elapsed().unwrap() < MAX_PLAYER_IDLE);
+                .retain(|_k, v| v.last_heartbeat.elapsed().unwrap() < PLAYER_IDLE_THRESHOLD_MAX);
             if state.players != prev_players {
                 log::warn!(
                     "removing idle players: {}",
@@ -121,16 +136,16 @@ impl Mutation {
         ctx: &Context<'_>,
         player_id: PlayerId,
         name: String,
-    ) -> Result<bool> {
+    ) -> Result<Option<Player>> {
         let session = ctx.data_unchecked::<Arc<crate::poker::PlaySession>>();
         let outcome = {
             let mut game_state = session.game_state.lock().unwrap();
             if let Some(player) = game_state.players.get_mut(&player_id) {
                 player.name = name;
-                Ok(true)
+                Ok(Some(Player::from(player.clone())))
             } else {
                 log::warn!("Tried to update name for unknown player: `{}`", player_id);
-                Ok(false)
+                Ok(None)
             }
         };
         session.notify_subscribers();
@@ -142,7 +157,7 @@ impl Mutation {
         ctx: &Context<'_>,
         player_id: PlayerId,
         card: Option<i32>,
-    ) -> Result<bool> {
+    ) -> Result<Option<Player>> {
         let card = card.map(|n| n as usize);
         let session = ctx.data_unchecked::<Arc<crate::poker::PlaySession>>();
         let outcome = {
@@ -157,10 +172,10 @@ impl Mutation {
                     prev if prev == card => (),
                     _ => player.selected_card = card,
                 }
-                Ok(true)
+                Ok(Some(Player::from(player.clone())))
             } else {
                 log::warn!("Tried to update card for unknown player: `{}`", player_id);
-                Ok(false)
+                Ok(None)
             }
         };
         session.notify_subscribers();
