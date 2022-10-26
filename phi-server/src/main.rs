@@ -99,7 +99,7 @@ async fn main() -> std::io::Result<()> {
     let admin_key = opts.admin_key.unwrap_or_else(|| Uuid::new_v4().to_string());
 
     log::info!("Admin Key: {}", &admin_key);
-    log::info!("Server listening on {}", opts.http_addr);
+    log::info!("Disconnect timeout secs: {}", opts.disconnect_timeout_secs);
     log::info!("Server listening on {}", opts.http_addr);
 
     let play_session = Arc::new(poker::PlaySession::new(
