@@ -11,9 +11,6 @@ use tokio_stream::{self as stream, wrappers::BroadcastStream, Stream, StreamExt}
 
 /// Players who fail to send a heartbeat within this time will be shown as being idle.
 const PLAYER_IDLE_THRESHOLD: Duration = Duration::from_secs(30);
-/// Players that fail to send a heartbeat within this time will be dropped from
-/// the game.
-const PLAYER_IDLE_THRESHOLD_MAX: Duration = Duration::from_secs(60 * 60);
 
 pub type PokerSchema = Schema<Query, Mutation, Subscription>;
 
@@ -119,7 +116,7 @@ impl Mutation {
 
             state
                 .players
-                .retain(|_k, v| v.last_heartbeat.elapsed().unwrap() < PLAYER_IDLE_THRESHOLD_MAX);
+                .retain(|_k, v| v.last_heartbeat.elapsed().unwrap() < session.disconnect_timeout);
             if state.players != prev_players {
                 log::warn!(
                     "removing idle players: {}",

@@ -14,6 +14,14 @@ pub struct Opt {
     pub admin_key: Option<String>,
     #[structopt(
         long,
+        env = "PHI_DISCONNECT_TIMEOUT_SECS",
+        default_value = "3600",
+        help = "Players that fail to send a heartbeat within this time will be \
+        dropped from the game."
+    )]
+    pub disconnect_timeout_secs: u64,
+    #[structopt(
+        long,
         env = "PHI_DECK_TYPE",
         default_value = "fib",
         help = "Set the deck type: `fib` or `days`."
