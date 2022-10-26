@@ -3,7 +3,7 @@ ADD ./phi-react /code
 WORKDIR /code/
 RUN  npm ci && npm run build
 
-FROM ekidd/rust-musl-builder:1.57.0 as server-builder
+FROM ekidd/rust-musl-builder:stable as server-builder
 ADD ./phi-server /home/rust/src
 COPY --from=client-builder /code/build /home/rust/src/frontend
 ENV PHI_STATIC_DIR=/home/rust/src/frontend
