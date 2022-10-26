@@ -5,6 +5,7 @@ use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
 use async_graphql::Schema;
 use std::sync::Arc;
+use std::time::Duration;
 use structopt::StructOpt;
 use uuid::Uuid;
 
@@ -99,8 +100,13 @@ async fn main() -> std::io::Result<()> {
 
     log::info!("Admin Key: {}", &admin_key);
     log::info!("Server listening on {}", opts.http_addr);
+    log::info!("Server listening on {}", opts.http_addr);
 
-    let play_session = Arc::new(poker::PlaySession::new(admin_key, opts.deck_type));
+    let play_session = Arc::new(poker::PlaySession::new(
+        admin_key,
+        opts.deck_type,
+        Duration::from_secs(opts.disconnect_timeout_secs),
+    ));
     let poker_data = web::Data::new(play_session.clone());
 
     let schema = Schema::build(

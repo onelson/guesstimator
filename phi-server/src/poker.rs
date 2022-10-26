@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Mutex;
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 use tokio::sync::broadcast;
 use uuid::Uuid;
 
@@ -69,6 +69,7 @@ pub struct GameState {
 
 pub struct PlaySession {
     pub admin_key: AdminKey,
+    pub disconnect_timeout: Duration,
     pub game_state: Mutex<GameState>,
     /// When the game state changes, this is used to notify subscribers.
     pub game_state_notifier: broadcast::Sender<()>,
@@ -76,10 +77,15 @@ pub struct PlaySession {
 }
 
 impl PlaySession {
-    pub fn new(admin_key: AdminKey, deck_type: DeckType) -> PlaySession {
+    pub fn new(
+        admin_key: AdminKey,
+        deck_type: DeckType,
+        disconnect_timeout: Duration,
+    ) -> PlaySession {
         let (tx, _rx) = broadcast::channel(100);
         PlaySession {
             admin_key,
+            disconnect_timeout,
             game_state: Default::default(),
             game_state_notifier: tx,
             deck: match deck_type {
